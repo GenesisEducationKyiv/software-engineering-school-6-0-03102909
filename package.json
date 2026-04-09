@@ -1,0 +1,49 @@
+{
+  "name": "github-release-notification-api",
+  "version": "1.0.0",
+  "description": "GitHub Release Notification API that allows users to subscribe to email notifications about new releases of a chosen GitHub repository.",
+  "homepage": "https://github.com/03102909/github-release-notification-api#readme",
+  "bugs": {
+    "url": "https://github.com/03102909/github-release-notification-api/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/03102909/github-release-notification-api.git"
+  },
+  "license": "ISC",
+  "author": "Sofiia Perkova",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write src"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.20.0",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "prisma": "^7.7.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "axios": "^1.15.0",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "nodemailer": "^8.0.5",
+    "pg": "^8.20.0"
+  }
+}
