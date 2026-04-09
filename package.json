@@ -28,6 +28,7 @@
     "@types/node": "^25.5.2",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
+    "esbuild": "^0.28.0",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
