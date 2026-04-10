@@ -25,16 +25,23 @@ export const scannerService = {
           `scanner ${repo.owner}/${repo.name}: new release ${latestTag} (was: ${repo.lastSeenTag ?? 'none'})`,
         );
 
-        await repositoryRepository.updateLastSeenTag(repo.id, latestTag);
-
         const subscribers = await subscriptionRepository.findConfirmedSubscribersByRepo(repo.id);
 
         for (const sub of subscribers) {
-          // TODO: send release notification email to sub.subscriber.email
-          console.log(
-            `scanner would notify ${sub.subscriber.email} about ${repo.owner}/${repo.name}@${latestTag}`,
-          );
+          try {
+            // TODO: send release notification email to sub.subscriber.email
+            console.log(
+              `scanner would notify ${sub.subscriber.email} about ${repo.owner}/${repo.name}@${latestTag}`,
+            );
+          } catch (notifyErr) {
+            console.error(
+              `scanner failed to notify ${sub.subscriber.email} about ${repo.owner}/${repo.name}:`,
+              notifyErr,
+            );
+          }
         }
+
+        await repositoryRepository.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
         if (err instanceof GithubApiError && err.status === 503) {
           console.warn(`scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`);
