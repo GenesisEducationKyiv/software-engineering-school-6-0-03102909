@@ -91,4 +91,16 @@ export const subscriptionRepository = {
       },
     });
   },
+
+  async findConfirmedSubscribersByRepo(repositoryId: string) {
+    return await prisma.subscription.findMany({
+      where: {
+        repositoryId,
+        isConfirmed: true,
+      },
+      include: {
+        subscriber: true,
+      },
+    });
+  },
 };

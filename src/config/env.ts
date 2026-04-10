@@ -11,4 +11,5 @@ export default {
   SMTP_USER: process.env['SMTP_USER'] ?? '',
   SMTP_PASS: process.env['SMTP_PASS'] ?? '',
   SMTP_FROM: process.env['SMTP_FROM'] ?? 'noreply@example.com',
+  SCAN_CRON: process.env['SCAN_CRON'] ?? '*/5 * * * *',
 };
