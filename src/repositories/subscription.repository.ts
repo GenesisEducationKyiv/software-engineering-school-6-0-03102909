@@ -44,4 +44,23 @@ export const subscriptionRepository = {
       return { subscription, created: true };
     });
   },
+
+  async confirmToken(token: string): Promise<Subscription | null> {
+    const existing = await prisma.subscription.findUnique({
+      where: { confirmToken: token },
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    if (existing.isConfirmed) {
+      return existing;
+    }
+
+    return await prisma.subscription.update({
+      where: { id: existing.id },
+      data: { isConfirmed: true },
+    });
+  },
 };
