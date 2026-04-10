@@ -1,5 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
-import { subscribe, confirmSubscription } from '../../services/subscription.service.js';
+import {
+  subscribe,
+  confirmSubscription,
+  unsubscribe,
+  getSubscriptions,
+} from '../../services/subscription.service.js';
 import { HttpError } from '../../errors/HttpError.js';
 
 export const subscribeController = async (
@@ -34,6 +39,46 @@ export const confirmController = async (
     res.status(200).json({
       message: 'Subscription confirmed successfully',
     });
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const unsubscribeController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { token } = req.params;
+
+    if (!token || typeof token !== 'string') {
+      throw new HttpError('Invalid token format', 400);
+    }
+
+    await unsubscribe(token);
+
+    res.status(200).json({ message: 'Unsubscribed successfully' });
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const getSubscriptionsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { email } = req.query;
+
+    if (!email || typeof email !== 'string') {
+      throw new HttpError('Invalid email provided', 400);
+    }
+
+    const subscriptions = await getSubscriptions(email);
+
+    res.status(200).json(subscriptions);
   } catch (error: unknown) {
     next(error);
   }

@@ -63,4 +63,32 @@ export const subscriptionRepository = {
       data: { isConfirmed: true },
     });
   },
+
+  async removeByUnsubscribeToken(token: string): Promise<boolean> {
+    const existing = await prisma.subscription.findUnique({
+      where: { unsubscribeToken: token },
+    });
+
+    if (!existing) {
+      return false;
+    }
+
+    await prisma.subscription.delete({
+      where: { id: existing.id },
+    });
+
+    return true;
+  },
+
+  async findByEmail(email: string) {
+    return await prisma.subscription.findMany({
+      where: {
+        subscriber: { email: email },
+      },
+      include: {
+        repository: true,
+        subscriber: true,
+      },
+    });
+  },
 };

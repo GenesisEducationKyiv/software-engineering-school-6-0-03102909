@@ -1,22 +1,25 @@
 import { Router } from 'express';
 import { validateRequest } from '../../middlewares/validateRequest.js';
 import { subscribeSchema } from '../../validation/subscription.schema.js';
-import { subscribeController } from '../controllers/subscription.controller.js';
+import {
+  subscribeController,
+  confirmController,
+  unsubscribeController,
+  getSubscriptionsController,
+} from '../controllers/subscription.controller.js';
 
 const router = Router();
 
+// POST /api/subscribe
 router.post('/subscribe', validateRequest(subscribeSchema), subscribeController);
 
-router.get('/confirm/:token', (req, res) => {
-  res.status(501).json({ error: 'Not implemented yet' });
-});
+// GET /api/confirm/{token}
+router.get('/confirm/:token', confirmController);
 
-router.get('/unsubscribe/:token', (req, res) => {
-  res.status(501).json({ error: 'Not implemented yet' });
-});
+// GET /api/unsubscribe/{token}
+router.get('/unsubscribe/:token', unsubscribeController);
 
-router.get('/subscriptions', (req, res) => {
-  res.status(501).json({ error: 'Not implemented yet' });
-});
+// GET /api/subscriptions?email=...
+router.get('/subscriptions', getSubscriptionsController);
 
 export default router;

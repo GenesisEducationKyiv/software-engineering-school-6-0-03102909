@@ -27,3 +27,22 @@ export async function confirmSubscription(token: string) {
 
   return subscription;
 }
+
+export async function unsubscribe(token: string) {
+  const success = await subscriptionRepository.removeByUnsubscribeToken(token);
+
+  if (!success) {
+    throw new HttpError('Token not found', 404);
+  }
+}
+
+export async function getSubscriptions(email: string) {
+  const subscriptions = await subscriptionRepository.findByEmail(email);
+
+  return subscriptions.map((sub) => ({
+    email: sub.subscriber.email,
+    repo: `${sub.repository.owner}/${sub.repository.name}`,
+    confirmed: sub.isConfirmed,
+    last_seen_tag: sub.repository.lastSeenTag ?? '',
+  }));
+}
