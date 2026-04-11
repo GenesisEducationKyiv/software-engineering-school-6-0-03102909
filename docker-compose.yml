@@ -16,6 +16,19 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   app:
     build: .
     restart: unless-stopped
@@ -24,17 +37,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
       APP_URL: ${APP_URL:-http://localhost:3000}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
+      REDIS_URL: redis://redis:6379
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SCAN_CRON: ${SCAN_CRON:-*/5 * * * *}
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -53,4 +68,5 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   pgadmin_data:

@@ -1,8 +1,10 @@
 import axios, { type AxiosResponse } from 'axios';
 import config from '../config/env.js';
+import { redis } from '../db/redis.js';
 import { HttpError } from '../errors/HttpError.js';
 
 const GITHUB_API = 'https://api.github.com';
+const CACHE_TTL = 600;
 
 export class GithubApiError extends HttpError {
   constructor(message: string, status: number) {
@@ -30,8 +32,22 @@ function buildHeaders(): Record<string, string> {
 }
 
 async function githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
+  const cacheKey = `github:${path}`;
+
   try {
-    return await axios.get<T>(`${GITHUB_API}${path}`, { headers: buildHeaders() });
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log(`cache hit ${path}`);
+      return { data: JSON.parse(cached) } as AxiosResponse<T>;
+    }
+  } catch {}
+
+  try {
+    const response = await axios.get<T>(`${GITHUB_API}${path}`, { headers: buildHeaders() });
+
+    await redis.set(cacheKey, JSON.stringify(response.data), { EX: CACHE_TTL }).catch(() => {});
+
+    return response;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;

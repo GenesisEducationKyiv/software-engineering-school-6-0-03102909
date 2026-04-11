@@ -5,10 +5,12 @@ import config from './config/env.js';
 import { startBoss, stopBoss } from './jobs/boss.js';
 import { registerScannerJob } from './jobs/scanner.job.js';
 import { initMailer } from './services/mailer.service.js';
+import { connectRedis, disconnectRedis } from './db/redis.js';
 
 await prisma.$connect();
 console.log('DB connected');
 
+await connectRedis();
 await initMailer();
 
 await startBoss();
@@ -22,6 +24,7 @@ const shutdown = async () => {
   console.log('Shutting down…');
   server.close();
   await stopBoss();
+  await disconnectRedis();
   await prisma.$disconnect();
   process.exit(0);
 };
