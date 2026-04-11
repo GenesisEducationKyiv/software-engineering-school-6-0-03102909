@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validateRequest } from '../../middlewares/validateRequest.js';
-import { subscribeSchema } from '../../validation/subscription.schema.js';
+import { subscribeSchema, getSubscriptionsSchema } from '../../validation/subscription.schema.js';
 import {
   subscribeController,
   confirmController,
@@ -20,6 +20,6 @@ router.get('/confirm/:token', confirmController);
 router.get('/unsubscribe/:token', unsubscribeController);
 
 // GET /api/subscriptions?email=...
-router.get('/subscriptions', getSubscriptionsController);
+router.get('/subscriptions', validateRequest(getSubscriptionsSchema), getSubscriptionsController);
 
 export default router;

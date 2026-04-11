@@ -12,9 +12,7 @@ export const validateRequest =
         params: req.params,
       })) as Record<string, unknown>;
 
-      req.body = parsed['body'];
-      if (parsed['query']) req.query = parsed['query'] as typeof req.query;
-      if (parsed['params']) req.params = parsed['params'] as typeof req.params;
+      if (parsed['body']) req.body = parsed['body'];
 
       next();
     } catch (error: unknown) {

@@ -70,12 +70,7 @@ export const getSubscriptionsController = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { email } = req.query;
-
-    if (!email || typeof email !== 'string') {
-      throw new HttpError('Invalid email provided', 400);
-    }
-
+    const email = req.query['email'] as string;
     const subscriptions = await getSubscriptions(email);
 
     res.status(200).json(subscriptions);
