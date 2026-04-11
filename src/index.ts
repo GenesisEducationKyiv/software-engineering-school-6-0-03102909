@@ -4,9 +4,12 @@ import prisma from './db/prisma.js';
 import config from './config/env.js';
 import { startBoss, stopBoss } from './jobs/boss.js';
 import { registerScannerJob } from './jobs/scanner.job.js';
+import { initMailer } from './services/mailer.service.js';
 
 await prisma.$connect();
 console.log('DB connected');
+
+await initMailer();
 
 await startBoss();
 await registerScannerJob();

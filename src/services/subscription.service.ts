@@ -1,5 +1,6 @@
 import { subscriptionRepository } from '../repositories/subscription.repository.js';
 import { validateRepository } from './github.service.js';
+import { sendConfirmationEmail } from './mailer.service.js';
 import { HttpError } from '../errors/HttpError.js';
 
 export async function subscribe(email: string, repo: string) {
@@ -13,7 +14,7 @@ export async function subscribe(email: string, repo: string) {
     throw new HttpError('Email is already subscribed to this repository', 409);
   }
 
-  // TODO: send confirmation email using subscription.confirmToken
+  await sendConfirmationEmail(email, repo, subscription.confirmToken);
 
   return subscription;
 }

@@ -1,6 +1,7 @@
 import { repositoryRepository } from '../repositories/repository.repository.js';
 import { subscriptionRepository } from '../repositories/subscription.repository.js';
 import { getLatestRelease, GithubApiError } from './github.service.js';
+import { sendReleaseNotification } from './mailer.service.js';
 
 export const scannerService = {
   async scanAllRepositories(): Promise<void> {
@@ -29,9 +30,11 @@ export const scannerService = {
 
         for (const sub of subscribers) {
           try {
-            // TODO: send release notification email to sub.subscriber.email
-            console.log(
-              `scanner would notify ${sub.subscriber.email} about ${repo.owner}/${repo.name}@${latestTag}`,
+            await sendReleaseNotification(
+              sub.subscriber.email,
+              `${repo.owner}/${repo.name}`,
+              latestTag,
+              sub.unsubscribeToken,
             );
           } catch (notifyErr) {
             console.error(
