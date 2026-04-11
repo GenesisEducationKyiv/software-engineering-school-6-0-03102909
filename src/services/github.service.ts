@@ -36,7 +36,7 @@ async function githubGet<T>(path: string, fallbackError: string): Promise<AxiosR
 
   try {
     const cached = await redis.get(cacheKey);
-    if (cached) {
+    if (cached !== null) {
       console.log(`cache hit ${path}`);
       return { data: JSON.parse(cached) } as AxiosResponse<T>;
     }
@@ -83,8 +83,8 @@ export async function getLatestRelease(owner: string, name: string): Promise<str
   const path = `/repos/${owner}/${name}/releases/latest`;
 
   try {
-    const response = await githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
-    return response.data.tag_name ?? null;
+    const response = await githubGet<{ tag_name: string } | null>(path, 'Failed to fetch latest release');
+    return response.data?.tag_name ?? null;
   } catch (error) {
     if (error instanceof GithubApiError && error.status === 404) {
       await redis.set(`github:${path}`, JSON.stringify(null), { EX: CACHE_TTL }).catch(() => {});

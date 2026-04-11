@@ -18,8 +18,7 @@ export const subscribeController = async (
     const subscription = await subscribe(email, repo);
 
     res.status(200).json({
-      message: 'Successfully subscribed to repository',
-      data: subscription,
+      message: 'Subscription created. Check your email for confirmation.',
     });
   } catch (error: unknown) {
     next(error);
