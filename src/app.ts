@@ -1,10 +1,13 @@
 import express from 'express';
-import { errorHandler } from './middlewares/errorHandler.js';
+import { errorHandler, unknownEndpoint } from './middlewares/errorHandler.js';
 import subscriptionRoutes from './api/routes/subscription.routes.js';
 import { registry } from './metrics.js';
 import { metricsMiddleware } from './middlewares/metrics.middleware.js';
+import path from 'path';
 
 const app = express();
+
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.use(express.json());
 app.use(metricsMiddleware);
@@ -16,6 +19,7 @@ app.get('/metrics', async (_req, res) => {
   res.send(await registry.metrics());
 });
 
+app.use(unknownEndpoint);
 app.use(errorHandler);
 
 export default app;

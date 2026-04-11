@@ -30,10 +30,9 @@ RUN npm ci --omit=dev
 RUN npm install --no-save prisma
 
 COPY --from=build /app/dist ./dist
-
 COPY --from=build /app/prisma ./prisma
-
 COPY --from=build /app/prisma.config.js ./prisma.config.js
+COPY --from=build /app/public ./public
 
 EXPOSE 3000
 

@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 // POST /api/subscribe
-router.post('/subscribe', authMiddleware, validateRequest(subscribeSchema), subscribeController);
+router.post('/subscribe', validateRequest(subscribeSchema), subscribeController);
 
 // GET /api/confirm/{token}
 router.get('/confirm/:token', confirmController);
