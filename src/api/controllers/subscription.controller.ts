@@ -15,7 +15,7 @@ export const subscribeController = async (
   try {
     const { email, repo } = req.body;
 
-    const subscription = await subscribe(email, repo);
+    await subscribe(email, repo);
 
     res.status(200).json({
       message: 'Subscription created. Check your email for confirmation.',

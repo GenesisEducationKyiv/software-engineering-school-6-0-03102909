@@ -33,13 +33,13 @@ import { enqueueReleaseNotification } from '../../jobs/email.job.js';
 import { scannerService } from '../scanner.service.js';
 
 describe('ScannerService', () => {
-  let consoleLogSpy: any;
-  let consoleWarnSpy: any;
-  let consoleErrorSpy: any;
+  let _consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    _consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
