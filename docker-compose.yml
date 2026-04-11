@@ -50,6 +50,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SCAN_CRON: ${SCAN_CRON:-*/5 * * * *}
+      API_KEY: ${API_KEY:-}
 
   pgadmin:
     image: dpage/pgadmin4:latest

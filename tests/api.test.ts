@@ -13,6 +13,16 @@ vi.mock('../src/services/subscription.service.js', () => ({
 
 import * as subscriptionService from '../src/services/subscription.service.js';
 
+const API_KEY = process.env['API_KEY'] ?? 'test-key';
+
+function authGet(path: string) {
+  return request(app).get(path).set('X-API-Key', API_KEY);
+}
+
+function authPost(path: string) {
+  return request(app).post(path).set('X-API-Key', API_KEY);
+}
+
 describe('API Contract Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -22,43 +32,44 @@ describe('API Contract Tests', () => {
     it('should return 200 on successful subscription', async () => {
       (subscriptionService.subscribe as any).mockResolvedValue({ id: 1 });
 
-      const response = await request(app)
-        .post('/api/subscribe')
-        .send({ email: 'test@example.com', repo: 'owner/repo' });
+      const response = await authPost('/api/subscribe').send({
+        email: 'test@example.com',
+        repo: 'owner/repo',
+      });
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 for missing email', async () => {
-      const response = await request(app).post('/api/subscribe').send({ repo: 'owner/repo' });
+      const response = await authPost('/api/subscribe').send({ repo: 'owner/repo' });
 
       expect(response.status).toBe(400);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 for missing repo', async () => {
-      const response = await request(app)
-        .post('/api/subscribe')
-        .send({ email: 'test@example.com' });
+      const response = await authPost('/api/subscribe').send({ email: 'test@example.com' });
 
       expect(response.status).toBe(400);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 for invalid repo format', async () => {
-      const response = await request(app)
-        .post('/api/subscribe')
-        .send({ email: 'test@example.com', repo: 'invalidformat' });
+      const response = await authPost('/api/subscribe').send({
+        email: 'test@example.com',
+        repo: 'invalidformat',
+      });
 
       expect(response.status).toBe(400);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 for invalid email format', async () => {
-      const response = await request(app)
-        .post('/api/subscribe')
-        .send({ email: 'notanemail', repo: 'owner/repo' });
+      const response = await authPost('/api/subscribe').send({
+        email: 'notanemail',
+        repo: 'owner/repo',
+      });
 
       expect(response.status).toBe(400);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -67,9 +78,10 @@ describe('API Contract Tests', () => {
     it('should return 404 if repository is not found on GitHub', async () => {
       (subscriptionService.subscribe as any).mockRejectedValue(new HttpError('Not found', 404));
 
-      const response = await request(app)
-        .post('/api/subscribe')
-        .send({ email: 'test@example.com', repo: 'bad/repo' });
+      const response = await authPost('/api/subscribe').send({
+        email: 'test@example.com',
+        repo: 'bad/repo',
+      });
 
       expect(response.status).toBe(404);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -78,11 +90,21 @@ describe('API Contract Tests', () => {
     it('should return 409 if email is already subscribed', async () => {
       (subscriptionService.subscribe as any).mockRejectedValue(new HttpError('Conflict', 409));
 
+      const response = await authPost('/api/subscribe').send({
+        email: 'test@example.com',
+        repo: 'owner/repo',
+      });
+
+      expect(response.status).toBe(409);
+      expect(response.headers['content-type']).toMatch(/json/);
+    });
+
+    it('should return 401 without API key', async () => {
       const response = await request(app)
         .post('/api/subscribe')
         .send({ email: 'test@example.com', repo: 'owner/repo' });
 
-      expect(response.status).toBe(409);
+      expect(response.status).toBe(401);
       expect(response.headers['content-type']).toMatch(/json/);
     });
   });
@@ -159,7 +181,7 @@ describe('API Contract Tests', () => {
       ];
       (subscriptionService.getSubscriptions as any).mockResolvedValue(mockData);
 
-      const response = await request(app).get('/api/subscriptions?email=test@example.com');
+      const response = await authGet('/api/subscriptions?email=test@example.com');
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -179,7 +201,7 @@ describe('API Contract Tests', () => {
     it('should return 200 and empty array when no subscriptions found', async () => {
       (subscriptionService.getSubscriptions as any).mockResolvedValue([]);
 
-      const response = await request(app).get('/api/subscriptions?email=test@example.com');
+      const response = await authGet('/api/subscriptions?email=test@example.com');
 
       expect(response.status).toBe(200);
       expect(response.body).toBeInstanceOf(Array);
@@ -187,16 +209,23 @@ describe('API Contract Tests', () => {
     });
 
     it('should return 400 when email query parameter is missing', async () => {
-      const response = await request(app).get('/api/subscriptions');
+      const response = await authGet('/api/subscriptions');
 
       expect(response.status).toBe(400);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 for invalid email format', async () => {
-      const response = await request(app).get('/api/subscriptions?email=notanemail');
+      const response = await authGet('/api/subscriptions?email=notanemail');
 
       expect(response.status).toBe(400);
+      expect(response.headers['content-type']).toMatch(/json/);
+    });
+
+    it('should return 401 without API key', async () => {
+      const response = await request(app).get('/api/subscriptions?email=test@example.com');
+
+      expect(response.status).toBe(401);
       expect(response.headers['content-type']).toMatch(/json/);
     });
   });
