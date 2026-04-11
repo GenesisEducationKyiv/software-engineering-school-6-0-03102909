@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 
+const API_KEY = vi.hoisted(() => {
+  const key = 'test-api-key';
+  process.env['API_KEY'] = key;
+  return key;
+});
+
 import app from '../src/app.js';
 import { HttpError } from '../src/errors/HttpError.js';
 
@@ -12,8 +18,6 @@ vi.mock('../src/services/subscription.service.js', () => ({
 }));
 
 import * as subscriptionService from '../src/services/subscription.service.js';
-
-const API_KEY = process.env['API_KEY'] ?? 'test-key';
 
 function authGet(path: string) {
   return request(app).get(path).set('X-API-Key', API_KEY);
