@@ -11,7 +11,10 @@ export const errorHandler = (
     res.status(err.status).json({ error: err.message });
     return;
   }
-
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
+};
+
+export const unknownEndpoint = (_req: Request, res: Response): void => {
+  res.status(404).json({ error: 'Unknown endpoint' });
 };
