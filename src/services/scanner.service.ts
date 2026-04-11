@@ -1,7 +1,7 @@
 import { repositoryRepository } from '../repositories/repository.repository.js';
 import { subscriptionRepository } from '../repositories/subscription.repository.js';
 import { getLatestRelease, GithubApiError } from './github.service.js';
-import { sendReleaseNotification } from './mailer.service.js';
+import { enqueueReleaseNotification } from '../jobs/email.job.js';
 
 export const scannerService = {
   async scanAllRepositories(): Promise<void> {
@@ -30,7 +30,7 @@ export const scannerService = {
 
         for (const sub of subscribers) {
           try {
-            await sendReleaseNotification(
+            await enqueueReleaseNotification(
               sub.subscriber.email,
               `${repo.owner}/${repo.name}`,
               latestTag,
@@ -38,7 +38,7 @@ export const scannerService = {
             );
           } catch (notifyErr) {
             console.error(
-              `scanner failed to notify ${sub.subscriber.email} about ${repo.owner}/${repo.name}:`,
+              `scanner failed to enqueue notification for ${sub.subscriber.email} about ${repo.owner}/${repo.name}:`,
               notifyErr,
             );
           }

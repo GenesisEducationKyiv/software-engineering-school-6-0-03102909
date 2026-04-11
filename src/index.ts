@@ -4,6 +4,7 @@ import prisma from './db/prisma.js';
 import config from './config/env.js';
 import { startBoss, stopBoss } from './jobs/boss.js';
 import { registerScannerJob } from './jobs/scanner.job.js';
+import { registerEmailJob } from './jobs/email.job.js';
 import { initMailer } from './services/mailer.service.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
 
@@ -15,6 +16,7 @@ await initMailer();
 
 await startBoss();
 await registerScannerJob();
+await registerEmailJob();
 
 const server = app.listen(config.PORT, () => {
   console.log(`Server running on port ${config.PORT}`);

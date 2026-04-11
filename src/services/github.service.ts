@@ -40,7 +40,9 @@ async function githubGet<T>(path: string, fallbackError: string): Promise<AxiosR
       console.log(`cache hit ${path}`);
       return { data: JSON.parse(cached) } as AxiosResponse<T>;
     }
-  } catch {}
+  } catch (error) {
+    console.warn(`redis failed to read cache for ${cacheKey}:`, error);
+  }
 
   try {
     const response = await axios.get<T>(`${GITHUB_API}${path}`, { headers: buildHeaders() });
@@ -78,14 +80,14 @@ export async function validateRepository(owner: string, name: string): Promise<G
 }
 
 export async function getLatestRelease(owner: string, name: string): Promise<string | null> {
+  const path = `/repos/${owner}/${name}/releases/latest`;
+
   try {
-    const response = await githubGet<{ tag_name: string }>(
-      `/repos/${owner}/${name}/releases/latest`,
-      'Failed to fetch latest release',
-    );
+    const response = await githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
     return response.data.tag_name ?? null;
   } catch (error) {
     if (error instanceof GithubApiError && error.status === 404) {
+      await redis.set(`github:${path}`, JSON.stringify(null), { EX: CACHE_TTL }).catch(() => {});
       return null;
     }
     throw error;
