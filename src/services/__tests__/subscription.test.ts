@@ -12,6 +12,7 @@ vi.mock('../../repositories/subscription.repository.js', () => ({
 
 vi.mock('../github.service.js', () => ({
   validateRepository: vi.fn(),
+  getLatestRelease: vi.fn(),
 }));
 
 vi.mock('../../jobs/email.job.js', () => ({
@@ -19,7 +20,7 @@ vi.mock('../../jobs/email.job.js', () => ({
 }));
 
 import { subscriptionRepository } from '../../repositories/subscription.repository.js';
-import { validateRepository } from '../github.service.js';
+import { validateRepository, getLatestRelease } from '../github.service.js';
 import { enqueueConfirmationEmail } from '../../jobs/email.job.js';
 import {
   subscribe,
@@ -40,6 +41,7 @@ describe('SubscriptionService', () => {
       const mockSubscription = { confirmToken: 'fake-token', isConfirmed: false };
 
       (validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
+      (getLatestRelease as any).mockResolvedValue('v1.0.0');
       (subscriptionRepository.createOrGet as any).mockResolvedValue({
         subscription: mockSubscription,
         created: true,
@@ -49,7 +51,8 @@ describe('SubscriptionService', () => {
 
       expect(result).toEqual(mockSubscription);
       expect(validateRepository).toHaveBeenCalledWith('owner', 'repo');
-      expect(subscriptionRepository.createOrGet).toHaveBeenCalledWith(mockEmail, 'owner', 'repo');
+      expect(getLatestRelease).toHaveBeenCalledWith('owner', 'repo');
+      expect(subscriptionRepository.createOrGet).toHaveBeenCalledWith(mockEmail, 'owner', 'repo', 'v1.0.0');
       expect(enqueueConfirmationEmail).toHaveBeenCalledWith(mockEmail, mockRepo, 'fake-token');
     });
 
