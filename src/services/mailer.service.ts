@@ -6,8 +6,8 @@ let transporter: Transporter;
 export async function initMailer(): Promise<void> {
   transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 2525,
+    secure: false,
     auth: {
       user: config.SMTP_USER,
       pass: config.SMTP_PASS,
