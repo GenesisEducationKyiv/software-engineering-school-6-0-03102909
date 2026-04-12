@@ -47,7 +47,9 @@ export const scannerService = {
         await repositoryRepository.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
         if (err instanceof GithubApiError && err.status === 503) {
-          console.warn(`scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`);
+          console.warn(
+            `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
+          );
           break;
         }
         console.error(`scanner error scanning ${repo.owner}/${repo.name}:`, err);

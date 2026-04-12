@@ -2,10 +2,12 @@ import { z } from 'zod';
 
 export const subscribeSchema = z.object({
   body: z.object({
-    email: z.email({ error: 'Invalid email format' }),
+    email: z.email({ error: 'Invalid email format' }).trim().toLowerCase(),
 
     repo: z
       .string()
+      .trim()
+      .toLowerCase()
       .regex(/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/, {
         error: 'Repository must be in "owner/repo" format',
       }),
@@ -14,7 +16,7 @@ export const subscribeSchema = z.object({
 
 export const getSubscriptionsSchema = z.object({
   query: z.object({
-    email: z.email({ error: 'Invalid email format' }),
+    email: z.email({ error: 'Invalid email format' }).trim().toLowerCase(),
   }),
 });
 

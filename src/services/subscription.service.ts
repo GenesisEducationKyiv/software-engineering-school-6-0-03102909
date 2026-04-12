@@ -1,5 +1,5 @@
 import { subscriptionRepository } from '../repositories/subscription.repository.js';
-import { validateRepository } from './github.service.js';
+import { validateRepository, getLatestRelease } from './github.service.js';
 import { enqueueConfirmationEmail } from '../jobs/email.job.js';
 import { HttpError } from '../errors/HttpError.js';
 
@@ -8,7 +8,14 @@ export async function subscribe(email: string, repo: string) {
 
   await validateRepository(owner, name);
 
-  const { subscription, created } = await subscriptionRepository.createOrGet(email, owner, name);
+  const latestTag = await getLatestRelease(owner, name).catch(() => null);
+
+  const { subscription, created } = await subscriptionRepository.createOrGet(
+    email,
+    owner,
+    name,
+    latestTag,
+  );
 
   if (!created && subscription.isConfirmed) {
     throw new HttpError('Email is already subscribed to this repository', 409);

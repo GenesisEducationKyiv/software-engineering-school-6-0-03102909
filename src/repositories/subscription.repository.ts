@@ -6,12 +6,13 @@ export const subscriptionRepository = {
     email: string,
     owner: string,
     name: string,
+    latestTag: string | null = null
   ): Promise<{ subscription: Subscription; created: boolean }> {
     return await prisma.$transaction(async (tx) => {
       const repository = await tx.repository.upsert({
         where: { owner_name: { owner, name } },
         update: {},
-        create: { owner, name },
+        create: { owner, name, lastSeenTag: latestTag },
       });
 
       const subscriber = await tx.subscriber.upsert({
