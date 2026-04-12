@@ -131,7 +131,9 @@ describe('API Contract Tests', () => {
     it('should return 200 when unsubscribed successfully', async () => {
       (subscriptionService.unsubscribe as any).mockResolvedValue(undefined);
 
-      const response = await request(app).get('/api/unsubscribe/11111111-1111-1111-1111-111111111111');
+      const response = await request(app).get(
+        '/api/unsubscribe/11111111-1111-1111-1111-111111111111',
+      );
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -140,7 +142,9 @@ describe('API Contract Tests', () => {
     it('should return 404 when token is not found', async () => {
       (subscriptionService.unsubscribe as any).mockRejectedValue(new HttpError('Not found', 404));
 
-      const response = await request(app).get('/api/unsubscribe/22222222-2222-2222-2222-222222222222');
+      const response = await request(app).get(
+        '/api/unsubscribe/22222222-2222-2222-2222-222222222222',
+      );
 
       expect(response.status).toBe(404);
       expect(response.headers['content-type']).toMatch(/json/);
