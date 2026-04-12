@@ -1,25 +1,20 @@
-import nodemailer, { type Transporter, type SendMailOptions } from 'nodemailer';
+import { Resend } from 'resend';
 import config from '../config/env.js';
 
-let transporter: Transporter;
+const resend = new Resend(config.RESEND_API_KEY);
 
 export async function initMailer(): Promise<void> {
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 2525,
-    secure: false,
-    auth: {
-      user: config.SMTP_USER,
-      pass: config.SMTP_PASS,
-    },
-  });
-
-  await transporter.verify();
-  console.log(`mailer connected via Gmail as ${config.SMTP_USER}`);
+  console.log('mailer connected via Resend');
 }
 
-async function sendMail(options: SendMailOptions): Promise<void> {
-  await transporter.sendMail(options);
+async function sendMail(to: string, subject: string, html: string, text: string): Promise<void> {
+  await resend.emails.send({
+    from: 'GitHub Notifier <noreply@githubnotifier.tech>',
+    to,
+    subject,
+    html,
+    text,
+  });
 }
 
 export async function sendConfirmationEmail(
@@ -29,11 +24,17 @@ export async function sendConfirmationEmail(
 ): Promise<void> {
   const confirmUrl = `${config.APP_URL}/api/confirm/${confirmToken}`;
 
-  await sendMail({
-    from: config.SMTP_FROM,
+  await sendMail(
     to,
-    subject: `Confirm your subscription to ${repo}`,
-    text: [
+    `Confirm your subscription to ${repo}`,
+    `
+      <h2>Confirm your subscription</h2>
+      <p>You have been subscribed to release notifications for <strong>${repo}</strong>.</p>
+      <p>Please confirm your subscription by clicking the link below:</p>
+      <p><a href="${confirmUrl}">Confirm subscription</a></p>
+      <p style="color:#888;font-size:12px;">If you did not request this, you can safely ignore this email.</p>
+    `,
+    [
       `You have been subscribed to release notifications for ${repo}.`,
       '',
       'Please confirm your subscription by visiting the link below:',
@@ -41,14 +42,7 @@ export async function sendConfirmationEmail(
       '',
       'If you did not request this, you can safely ignore this email.',
     ].join('\n'),
-    html: `
-      <h2>Confirm your subscription</h2>
-      <p>You have been subscribed to release notifications for <strong>${repo}</strong>.</p>
-      <p>Please confirm your subscription by clicking the link below:</p>
-      <p><a href="${confirmUrl}">Confirm subscription</a></p>
-      <p style="color:#888;font-size:12px;">If you did not request this, you can safely ignore this email.</p>
-    `,
-  });
+  );
 
   console.log(`mailer confirmation email sent to ${to} for ${repo}`);
 }
@@ -62,18 +56,10 @@ export async function sendReleaseNotification(
   const releaseUrl = `https://github.com/${repo}/releases/tag/${tag}`;
   const unsubscribeUrl = `${config.APP_URL}/api/unsubscribe/${unsubscribeToken}`;
 
-  await sendMail({
-    from: config.SMTP_FROM,
+  await sendMail(
     to,
-    subject: `New release of ${repo}: ${tag}`,
-    text: [
-      `A new release has been published for ${repo}: ${tag}`,
-      '',
-      `View the release: ${releaseUrl}`,
-      '',
-      `Unsubscribe: ${unsubscribeUrl}`,
-    ].join('\n'),
-    html: `
+    `New release of ${repo}: ${tag}`,
+    `
       <h2>New release: ${repo} ${tag}</h2>
       <p>A new release has been published for <strong>${repo}</strong>.</p>
       <p><a href="${releaseUrl}">View release ${tag} on GitHub</a></p>
@@ -82,10 +68,14 @@ export async function sendReleaseNotification(
         <a href="${unsubscribeUrl}">Unsubscribe</a> from notifications for ${repo}.
       </p>
     `,
-    headers: {
-      'List-Unsubscribe': `<${unsubscribeUrl}>`,
-    },
-  });
+    [
+      `A new release has been published for ${repo}: ${tag}`,
+      '',
+      `View the release: ${releaseUrl}`,
+      '',
+      `Unsubscribe: ${unsubscribeUrl}`,
+    ].join('\n'),
+  );
 
   console.log(`mailer release notification sent to ${to} for ${repo}@${tag}`);
 }
