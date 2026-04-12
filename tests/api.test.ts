@@ -101,7 +101,7 @@ describe('API Contract Tests', () => {
     it('should return 200 when subscription is confirmed', async () => {
       (subscriptionService.confirmSubscription as any).mockResolvedValue({ id: 1 });
 
-      const response = await request(app).get('/api/confirm/valid-token');
+      const response = await request(app).get('/api/confirm/11111111-1111-1111-1111-111111111111');
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -112,17 +112,14 @@ describe('API Contract Tests', () => {
         new HttpError('Not found', 404),
       );
 
-      const response = await request(app).get('/api/confirm/bad-token');
+      const response = await request(app).get('/api/confirm/22222222-2222-2222-2222-222222222222');
 
       expect(response.status).toBe(404);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 when token is invalid', async () => {
-      (subscriptionService.confirmSubscription as any).mockRejectedValue(
-        new HttpError('Invalid token', 400),
-      );
-
+      // Service is not mocked to reject because Zod intercepts the invalid format before hitting the controller
       const response = await request(app).get('/api/confirm/invalid-token');
 
       expect(response.status).toBe(400);
@@ -134,7 +131,7 @@ describe('API Contract Tests', () => {
     it('should return 200 when unsubscribed successfully', async () => {
       (subscriptionService.unsubscribe as any).mockResolvedValue(undefined);
 
-      const response = await request(app).get('/api/unsubscribe/valid-token');
+      const response = await request(app).get('/api/unsubscribe/11111111-1111-1111-1111-111111111111');
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
@@ -143,17 +140,14 @@ describe('API Contract Tests', () => {
     it('should return 404 when token is not found', async () => {
       (subscriptionService.unsubscribe as any).mockRejectedValue(new HttpError('Not found', 404));
 
-      const response = await request(app).get('/api/unsubscribe/bad-token');
+      const response = await request(app).get('/api/unsubscribe/22222222-2222-2222-2222-222222222222');
 
       expect(response.status).toBe(404);
       expect(response.headers['content-type']).toMatch(/json/);
     });
 
     it('should return 400 when token is invalid', async () => {
-      (subscriptionService.unsubscribe as any).mockRejectedValue(
-        new HttpError('Invalid token', 400),
-      );
-
+      // Service is not mocked to reject because Zod intercepts the invalid format before hitting the controller
       const response = await request(app).get('/api/unsubscribe/invalid-token');
 
       expect(response.status).toBe(400);
