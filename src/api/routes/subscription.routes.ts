@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { validateRequest } from '../../middlewares/validateRequest.js';
 import { authMiddleware } from '../../middlewares/auth.middleware.js';
-import { subscribeSchema, getSubscriptionsSchema } from '../../validation/subscription.schema.js';
+import { subscribeSchema, getSubscriptionsSchema, tokenParamSchema } from '../../validation/subscription.schema.js';
 import {
   subscribeController,
   confirmController,
@@ -15,10 +15,10 @@ const router = Router();
 router.post('/subscribe', validateRequest(subscribeSchema), subscribeController);
 
 // GET /api/confirm/{token}
-router.get('/confirm/:token', confirmController);
+router.get('/confirm/:token', validateRequest(tokenParamSchema), confirmController);
 
 // GET /api/unsubscribe/{token}
-router.get('/unsubscribe/:token', unsubscribeController);
+router.get('/unsubscribe/:token', validateRequest(tokenParamSchema), unsubscribeController);
 
 // GET /api/subscriptions?email=...
 router.get(

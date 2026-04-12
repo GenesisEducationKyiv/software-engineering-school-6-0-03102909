@@ -5,7 +5,6 @@ import {
   unsubscribe,
   getSubscriptions,
 } from '../../services/subscription.service.js';
-import { HttpError } from '../../errors/HttpError.js';
 
 export const subscribeController = async (
   req: Request,
@@ -31,8 +30,7 @@ export const confirmController = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { token } = req.params;
-    if (!token || typeof token !== 'string') throw new HttpError('Invalid token', 400);
+    const token = req.params.token as string;
     await confirmSubscription(token);
 
     res.status(200).json({
@@ -49,12 +47,7 @@ export const unsubscribeController = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { token } = req.params;
-
-    if (!token || typeof token !== 'string') {
-      throw new HttpError('Invalid token format', 400);
-    }
-
+    const token = req.params.token as string;
     await unsubscribe(token);
 
     res.status(200).json({ message: 'Unsubscribed successfully' });

@@ -18,4 +18,10 @@ export const getSubscriptionsSchema = z.object({
   }),
 });
 
+export const tokenParamSchema = z.object({
+  params: z.object({
+    token: z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, 'Invalid token'),
+  }),
+});
+
 export type SubscribeInput = z.infer<typeof subscribeSchema>['body'];
