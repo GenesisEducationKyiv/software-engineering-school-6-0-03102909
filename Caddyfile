@@ -1,0 +1,7 @@
+{
+    email gh.release.notifier@gmail.com
+}
+
+githubnotifier.tech {
+    reverse_proxy app:3000
+}
