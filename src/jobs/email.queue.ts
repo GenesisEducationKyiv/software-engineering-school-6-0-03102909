@@ -3,14 +3,14 @@ import type { IJobQueue } from '../interfaces/infrastructure.interfaces.js';
 
 const QUEUE_NAME = 'send-email';
 
-interface ConfirmationPayload {
+export interface ConfirmationPayload {
   type: 'confirmation';
   to: string;
   repo: string;
   confirmToken: string;
 }
 
-interface ReleasePayload {
+export interface ReleasePayload {
   type: 'release';
   to: string;
   repo: string;
