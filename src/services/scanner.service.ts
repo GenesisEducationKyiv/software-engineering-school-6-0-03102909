@@ -1,17 +1,23 @@
-import { repositoryRepository } from '../repositories/repository.repository.js';
-import { subscriptionRepository } from '../repositories/subscription.repository.js';
-import { getLatestRelease, GithubApiError } from './github.service.js';
-import { enqueueReleaseNotification } from '../jobs/email.job.js';
+import type { IRepositoryRepository, ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
+import type { IGithubClient, IJobQueue } from '../interfaces/infrastructure.interfaces.js';
+import { GithubApiError } from './github.service.js';
 
-export const scannerService = {
+export class ScannerService {
+  constructor(
+    private readonly repositoryRepo: IRepositoryRepository,
+    private readonly subscriptionRepo: ISubscriptionRepository,
+    private readonly githubClient: IGithubClient,
+    private readonly jobQueue: IJobQueue,
+  ) {}
+
   async scanAllRepositories(): Promise<void> {
-    const repositories = await repositoryRepository.findAllWithConfirmedSubscriptions();
+    const repositories = await this.repositoryRepo.findAllWithConfirmedSubscriptions();
 
     console.log(`scanner found ${repositories.length} repositories to check`);
 
     for (const repo of repositories) {
       try {
-        const latestTag = await getLatestRelease(repo.owner, repo.name);
+        const latestTag = await this.githubClient.getLatestRelease(repo.owner, repo.name);
 
         if (!latestTag) {
           console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
@@ -26,11 +32,11 @@ export const scannerService = {
           `scanner ${repo.owner}/${repo.name}: new release ${latestTag} (was: ${repo.lastSeenTag ?? 'none'})`,
         );
 
-        const subscribers = await subscriptionRepository.findConfirmedSubscribersByRepo(repo.id);
+        const subscribers = await this.subscriptionRepo.findConfirmedSubscribersByRepo(repo.id);
 
         for (const sub of subscribers) {
           try {
-            await enqueueReleaseNotification(
+            await this.jobQueue.enqueueReleaseNotification(
               sub.subscriber.email,
               `${repo.owner}/${repo.name}`,
               latestTag,
@@ -44,7 +50,7 @@ export const scannerService = {
           }
         }
 
-        await repositoryRepository.updateLastSeenTag(repo.id, latestTag);
+        await this.repositoryRepo.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
         if (err instanceof GithubApiError && err.status === 503) {
           console.warn(
@@ -55,5 +61,5 @@ export const scannerService = {
         console.error(`scanner error scanning ${repo.owner}/${repo.name}:`, err);
       }
     }
-  },
-};
+  }
+}

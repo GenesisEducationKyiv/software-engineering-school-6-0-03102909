@@ -1,0 +1,31 @@
+import { repositoryRepository } from './repositories/repository.repository.js';
+import { subscriptionRepository } from './repositories/subscription.repository.js';
+import { RedisCacheProvider } from './db/cache.provider.js';
+import { ResendMailTransport } from './db/mail.transport.js';
+import { GithubService } from './services/github.service.js';
+import { MailerService } from './services/mailer.service.js';
+import { ScannerService } from './services/scanner.service.js';
+import { SubscriptionService } from './services/subscription.service.js';
+import { EmailJobQueue } from './jobs/email.queue.js';
+import boss from './jobs/boss.js';
+
+const cacheProvider = new RedisCacheProvider();
+const mailTransport = new ResendMailTransport();
+
+const emailJobQueue = new EmailJobQueue(boss);
+
+const githubClient = new GithubService(cacheProvider);
+const mailerService = new MailerService(mailTransport);
+const subscriptionService = new SubscriptionService(
+  subscriptionRepository,
+  githubClient,
+  emailJobQueue,
+);
+const scannerService = new ScannerService(
+  repositoryRepository,
+  subscriptionRepository,
+  githubClient,
+  emailJobQueue,
+);
+
+export { boss, mailerService, githubClient, subscriptionService, scannerService };

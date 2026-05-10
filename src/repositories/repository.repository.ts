@@ -1,6 +1,7 @@
 import prisma from '../db/prisma.js';
+import type { IRepositoryRepository } from '../interfaces/repository.interfaces.js';
 
-export const repositoryRepository = {
+export const repositoryRepository: IRepositoryRepository = {
   async findAllWithConfirmedSubscriptions() {
     return await prisma.repository.findMany({
       where: {

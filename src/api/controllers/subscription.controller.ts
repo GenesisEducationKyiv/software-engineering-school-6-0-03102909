@@ -1,10 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import {
-  subscribe,
-  confirmSubscription,
-  unsubscribe,
-  getSubscriptions,
-} from '../../services/subscription.service.js';
+import { subscriptionService } from '../../container.js';
 
 export const subscribeController = async (
   req: Request,
@@ -14,7 +9,7 @@ export const subscribeController = async (
   try {
     const { email, repo } = req.body;
 
-    await subscribe(email, repo);
+    await subscriptionService.subscribe(email, repo);
 
     res.status(200).json({
       message: 'Subscription created. Check your email for confirmation.',
@@ -31,7 +26,7 @@ export const confirmController = async (
 ): Promise<void> => {
   try {
     const token = req.params.token as string;
-    await confirmSubscription(token);
+    await subscriptionService.confirmSubscription(token);
 
     res.status(200).json({
       message: 'Subscription confirmed successfully',
@@ -48,7 +43,7 @@ export const unsubscribeController = async (
 ): Promise<void> => {
   try {
     const token = req.params.token as string;
-    await unsubscribe(token);
+    await subscriptionService.unsubscribe(token);
 
     res.status(200).json({ message: 'Unsubscribed successfully' });
   } catch (error: unknown) {
@@ -63,7 +58,7 @@ export const getSubscriptionsController = async (
 ): Promise<void> => {
   try {
     const email = req.query['email'] as string;
-    const subscriptions = await getSubscriptions(email);
+    const subscriptions = await subscriptionService.getSubscriptions(email);
 
     res.status(200).json(subscriptions);
   } catch (error: unknown) {

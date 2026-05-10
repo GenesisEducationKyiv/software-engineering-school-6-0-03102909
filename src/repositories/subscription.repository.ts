@@ -1,13 +1,13 @@
 import prisma from '../db/prisma.js';
-import type { Subscription } from '../generated/prisma/client.js';
+import type { ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
 
-export const subscriptionRepository = {
+export const subscriptionRepository: ISubscriptionRepository = {
   async createOrGet(
     email: string,
     owner: string,
     name: string,
     latestTag: string | null = null
-  ): Promise<{ subscription: Subscription; created: boolean }> {
+  ) {
     return await prisma.$transaction(async (tx) => {
       const repository = await tx.repository.upsert({
         where: { owner_name: { owner, name } },
@@ -46,7 +46,7 @@ export const subscriptionRepository = {
     });
   },
 
-  async confirmToken(token: string): Promise<Subscription | null> {
+  async confirmToken(token: string) {
     const existing = await prisma.subscription.findUnique({
       where: { confirmToken: token },
     });
@@ -65,7 +65,7 @@ export const subscriptionRepository = {
     });
   },
 
-  async removeByUnsubscribeToken(token: string): Promise<boolean> {
+  async removeByUnsubscribeToken(token: string) {
     const existing = await prisma.subscription.findUnique({
       where: { unsubscribeToken: token },
     });
