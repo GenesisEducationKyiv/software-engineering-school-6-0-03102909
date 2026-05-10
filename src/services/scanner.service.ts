@@ -1,13 +1,13 @@
-import type { IRepositoryRepository, ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
-import type { IGithubClient, IJobQueue } from '../interfaces/infrastructure.interfaces.js';
+import type { IRepositoryRepository } from '../interfaces/repository.interfaces.js';
+import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
+import type { NotificationService } from './notification.service.js';
 import { GithubApiError } from './github.service.js';
 
 export class ScannerService {
   constructor(
     private readonly repositoryRepo: IRepositoryRepository,
-    private readonly subscriptionRepo: ISubscriptionRepository,
     private readonly githubClient: IGithubClient,
-    private readonly jobQueue: IJobQueue,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async scanAllRepositories(): Promise<void> {
@@ -32,23 +32,11 @@ export class ScannerService {
           `scanner ${repo.owner}/${repo.name}: new release ${latestTag} (was: ${repo.lastSeenTag ?? 'none'})`,
         );
 
-        const subscribers = await this.subscriptionRepo.findConfirmedSubscribersByRepo(repo.id);
-
-        for (const sub of subscribers) {
-          try {
-            await this.jobQueue.enqueueReleaseNotification(
-              sub.subscriber.email,
-              `${repo.owner}/${repo.name}`,
-              latestTag,
-              sub.unsubscribeToken,
-            );
-          } catch (notifyErr) {
-            console.error(
-              `scanner failed to enqueue notification for ${sub.subscriber.email} about ${repo.owner}/${repo.name}:`,
-              notifyErr,
-            );
-          }
-        }
+        await this.notificationService.notifySubscribers(
+          repo.id,
+          `${repo.owner}/${repo.name}`,
+          latestTag,
+        );
 
         await this.repositoryRepo.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {

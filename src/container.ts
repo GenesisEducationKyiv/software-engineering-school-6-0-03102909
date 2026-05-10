@@ -6,6 +6,7 @@ import { GithubService } from './services/github.service.js';
 import { MailerService } from './services/mailer.service.js';
 import { ScannerService } from './services/scanner.service.js';
 import { SubscriptionService } from './services/subscription.service.js';
+import { NotificationService } from './services/notification.service.js';
 import { EmailJobQueue } from './jobs/email.queue.js';
 import boss from './jobs/boss.js';
 
@@ -21,11 +22,11 @@ const subscriptionService = new SubscriptionService(
   githubClient,
   emailJobQueue,
 );
+const notificationService = new NotificationService(subscriptionRepository, emailJobQueue);
 const scannerService = new ScannerService(
   repositoryRepository,
-  subscriptionRepository,
   githubClient,
-  emailJobQueue,
+  notificationService,
 );
 
 export { boss, mailerService, githubClient, subscriptionService, scannerService };
