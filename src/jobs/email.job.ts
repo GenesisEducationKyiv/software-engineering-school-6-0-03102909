@@ -1,8 +1,6 @@
 import type { PgBoss } from 'pg-boss';
 import type { MailerService } from '../services/mailer.service.js';
-import type { EmailPayload } from './email.queue.js';
-
-const QUEUE_NAME = 'send-email';
+import { QUEUE_NAME, type EmailPayload } from './email.queue.js';
 
 async function handleEmail(mailer: MailerService, data: EmailPayload): Promise<void> {
   switch (data.type) {

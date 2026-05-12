@@ -1,7 +1,7 @@
 import type { PgBoss } from 'pg-boss';
 import type { IJobQueue } from '../interfaces/infrastructure.interfaces.js';
 
-const QUEUE_NAME = 'send-email';
+export const QUEUE_NAME = 'send-email';
 
 export interface ConfirmationPayload {
   type: 'confirmation';
