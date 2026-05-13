@@ -1,5 +1,5 @@
-import { repositoryRepository } from './repositories/repository.repository.js';
-import { subscriptionRepository } from './repositories/subscription.repository.js';
+import { RepositoryRepository } from './repositories/repository.repository.js';
+import { SubscriptionRepository } from './repositories/subscription.repository.js';
 import { RedisCacheProvider } from './db/cache.provider.js';
 import { redis } from './db/redis.js';
 import { ResendMailTransport } from './db/mail.transport.js';
@@ -12,10 +12,14 @@ import { SubscriptionService } from './services/subscription.service.js';
 import { NotificationService } from './services/notification.service.js';
 import { EmailJobQueue } from './jobs/email.queue.js';
 import boss from './jobs/boss.js';
+import prisma from './db/prisma.js';
 
 const cacheProvider = new RedisCacheProvider(redis);
 const resend = new Resend(config.RESEND_API_KEY);
 const mailTransport = new ResendMailTransport(resend);
+
+const repositoryRepository = new RepositoryRepository(prisma);
+const subscriptionRepository = new SubscriptionRepository(prisma);
 
 const emailJobQueue = new EmailJobQueue(boss);
 

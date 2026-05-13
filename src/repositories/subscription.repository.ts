@@ -1,14 +1,16 @@
-import prisma from '../db/prisma.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import type { ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
 
-export const subscriptionRepository: ISubscriptionRepository = {
+export class SubscriptionRepository implements ISubscriptionRepository {
+  constructor(private db: PrismaClient) {}
+
   async createOrGet(
     email: string,
     owner: string,
     name: string,
     latestTag: string | null = null
   ) {
-    return await prisma.$transaction(async (tx) => {
+    return await this.db.$transaction(async (tx) => {
       const repository = await tx.repository.upsert({
         where: { owner_name: { owner, name } },
         update: {},
@@ -44,10 +46,10 @@ export const subscriptionRepository: ISubscriptionRepository = {
 
       return { subscription, created: true };
     });
-  },
+  }
 
   async confirmToken(token: string) {
-    const existing = await prisma.subscription.findUnique({
+    const existing = await this.db.subscription.findUnique({
       where: { confirmToken: token },
     });
 
@@ -59,14 +61,14 @@ export const subscriptionRepository: ISubscriptionRepository = {
       return existing;
     }
 
-    return await prisma.subscription.update({
+    return await this.db.subscription.update({
       where: { id: existing.id },
       data: { isConfirmed: true },
     });
-  },
+  }
 
   async removeByUnsubscribeToken(token: string) {
-    const existing = await prisma.subscription.findUnique({
+    const existing = await this.db.subscription.findUnique({
       where: { unsubscribeToken: token },
     });
 
@@ -74,15 +76,15 @@ export const subscriptionRepository: ISubscriptionRepository = {
       return false;
     }
 
-    await prisma.subscription.delete({
+    await this.db.subscription.delete({
       where: { id: existing.id },
     });
 
     return true;
-  },
+  }
 
   async findByEmail(email: string) {
-    return await prisma.subscription.findMany({
+    return await this.db.subscription.findMany({
       where: {
         subscriber: { email: email },
       },
@@ -91,10 +93,10 @@ export const subscriptionRepository: ISubscriptionRepository = {
         subscriber: true,
       },
     });
-  },
+  }
 
   async findConfirmedSubscribersByRepo(repositoryId: string) {
-    return await prisma.subscription.findMany({
+    return await this.db.subscription.findMany({
       where: {
         repositoryId,
         isConfirmed: true,
@@ -103,5 +105,5 @@ export const subscriptionRepository: ISubscriptionRepository = {
         subscriber: true,
       },
     });
-  },
-};
+  }
+}
