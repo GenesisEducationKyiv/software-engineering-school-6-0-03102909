@@ -82,18 +82,9 @@ export class GithubService implements IGithubClient {
     }
   }
 
-  async getLatestRelease(owner: string, name: string): Promise<string | null> {
+  async getLatestRelease(owner: string, name: string): Promise<string> {
     const path = `/repos/${owner}/${name}/releases/latest`;
-
-    try {
-      const response = await this.githubGet<{ tag_name: string } | null>(path, 'Failed to fetch latest release');
-      return response.data?.tag_name ?? null;
-    } catch (error) {
-      if (error instanceof GithubApiError && error.status === 404) {
-        await this.cache.set(`github:${path}`, JSON.stringify(null), CACHE_TTL).catch(() => {});
-        return null;
-      }
-      throw error;
-    }
+    const response = await this.githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
+    return response.data.tag_name;
   }
 }

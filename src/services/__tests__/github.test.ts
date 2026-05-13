@@ -111,19 +111,15 @@ describe('GithubService', () => {
       expect(cache.set).not.toHaveBeenCalled();
     });
 
-    it('should return null and cache it if release is not found (404)', async () => {
+    it('should throw GithubApiError(404) if release is not found', async () => {
       const { cache, service } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
       const notFoundError = { isAxiosError: true, response: { status: 404 } };
       (axios.get as any).mockRejectedValue(notFoundError);
-      (cache.set as any).mockResolvedValue(undefined);
 
-      const result = await service.getLatestRelease('owner', 'repo');
-
-      expect(result).toBeNull();
-
-      expect(cache.set).toHaveBeenCalledWith('github:/repos/owner/repo/releases/latest', 'null', 600);
+      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow(GithubApiError);
+      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow('Not found');
     });
   });
 });

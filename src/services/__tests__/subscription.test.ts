@@ -61,7 +61,7 @@ describe('SubscriptionService', () => {
       const { subscriptionRepo, githubClient, jobQueue, service } = createMocks();
 
       (githubClient.validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
-      (githubClient.getLatestRelease as any).mockResolvedValue(null);
+      (githubClient.getLatestRelease as any).mockRejectedValue(new Error('Not found'));
       (subscriptionRepo.createOrGet as any).mockResolvedValue({
         subscription: { isConfirmed: true },
         created: false,

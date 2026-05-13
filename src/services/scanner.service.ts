@@ -19,11 +19,6 @@ export class ScannerService {
       try {
         const latestTag = await this.githubClient.getLatestRelease(repo.owner, repo.name);
 
-        if (!latestTag) {
-          console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
-          continue;
-        }
-
         if (latestTag === repo.lastSeenTag) {
           continue;
         }
@@ -40,11 +35,17 @@ export class ScannerService {
 
         await this.repositoryRepo.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
-        if (err instanceof GithubApiError && err.status === 503) {
-          console.warn(
-            `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
-          );
-          break;
+        if (err instanceof GithubApiError) {
+          if (err.status === 404) {
+            console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
+            continue;
+          }
+          if (err.status === 503) {
+            console.warn(
+              `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
+            );
+            break;
+          }
         }
         console.error(`scanner error scanning ${repo.owner}/${repo.name}:`, err);
       }

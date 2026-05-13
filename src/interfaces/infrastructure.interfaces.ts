@@ -9,7 +9,7 @@ export interface IMailTransport {
 
 export interface IGithubClient {
   validateRepository(owner: string, name: string): Promise<{ owner: string; name: string }>;
-  getLatestRelease(owner: string, name: string): Promise<string | null>;
+  getLatestRelease(owner: string, name: string): Promise<string>;
 }
 
 export interface IJobQueue {
