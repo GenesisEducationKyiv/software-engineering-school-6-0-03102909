@@ -112,15 +112,15 @@ erDiagram
     }
     Subscriber {
         String id PK
-        String email UNIQUE
+        String email UK
     }
     Subscription {
         String id PK
         String repositoryId FK
         String subscriberId FK
         Boolean isConfirmed
-        String confirmToken UNIQUE
-        String unsubscribeToken UNIQUE
+        String confirmToken UK
+        String unsubscribeToken UK
     }
 
     Repository ||--o{ Subscription : "has"
