@@ -43,12 +43,12 @@ flowchart TD
     API -- "Зберігає підписку" --> DB
     API -. "Рейт-ліміти" .-> Redis
 
-    Scanner -- "Отримує підписки" --> DB
+    DB -- "Повертає підписки" --> Scanner
     Scanner -. "Кешує запити" .-> Redis
-    Scanner -- "Перевіряє нові релізи" --> GitHub
+    GitHub -- "Повертає дані релізів" --> Scanner
     Scanner -- "Чергує email-задачі" --> DB
 
-    Mailer -- "Читає задачі з черги" --> DB
+    DB -- "Віддає задачі" --> Mailer
     Mailer -- "Відправляє листи" --> Resend
     Resend -- "Доставляє email" --> User
 ```
@@ -57,7 +57,9 @@ flowchart TD
 
 ### 3.1 API Service (Node.js/Express)
 
-**Відповідальність:**
+**Відповідальність:** приймає користувацькі запити, керує підписками та зберігає їх у базі даних.
+
+**Основні функції сервісу:**
 
 - Обробка запитів на підписку
 - Генерація токенів для підтвердження email та відписки
@@ -71,7 +73,9 @@ flowchart TD
 
 ### 3.2 Scanner Service
 
-**Відповідальність:**
+**Відповідальність:** перевіряє GitHub-репозиторії на наявність нових релізів і створює задачі для розсилки сповіщень.
+
+**Основні функції сервісу:**
 
 - Використовує вбудований cron у `pg-boss`
 - Проходиться по всіх унікальних репозиторіях у базі
@@ -84,7 +88,9 @@ flowchart TD
 
 ### 3.3 Mailer Worker
 
-**Відповідальність:**
+**Відповідальність:** обробляє email-задачі з черги та відправляє листи користувачам.
+
+**Основні функції сервісу:**
 
 - Слухає чергу `pg-boss`
 - Бере з черги задачі типів `confirmation-email` та `release-email`
@@ -106,17 +112,25 @@ erDiagram
     }
     Subscriber {
         String id PK
-        String email
+        String email UNIQUE
     }
     Subscription {
         String id PK
         String repositoryId FK
         String subscriberId FK
         Boolean isConfirmed
-        String confirmToken
-        String unsubscribeToken
+        String confirmToken UNIQUE
+        String unsubscribeToken UNIQUE
     }
 
     Repository ||--o{ Subscription : "has"
     Subscriber ||--o{ Subscription : "has"
 ```
+
+**Обмеження цілісності:**
+
+- `Subscriber.email` є унікальним, щоб один email відповідав одному підписнику.
+- Пара `Repository.owner + Repository.name` є унікальною, щоб не дублювати один і той самий репозиторій.
+- Пара `Subscription.subscriberId + Subscription.repositoryId` є унікальною, щоб користувач не міг мати дубльовану підписку на той самий репозиторій.
+- `confirmToken` та `unsubscribeToken` є унікальними, оскільки використовуються для підтвердження підписки та відписки.
+- При видаленні підписника або репозиторію пов’язані підписки видаляються каскадно.
