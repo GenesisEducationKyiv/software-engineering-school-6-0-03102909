@@ -1,4 +1,4 @@
-import axios, { type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
 import { HttpError } from '../errors/HttpError.js';
 import type { ICacheProvider, IGithubClient } from '../interfaces/infrastructure.interfaces.js';
@@ -32,7 +32,11 @@ function buildHeaders(): Record<string, string> {
 }
 
 export class GithubService implements IGithubClient {
-  constructor(private readonly cache: ICacheProvider) {}
+  private httpClient: AxiosInstance;
+
+  constructor(private readonly cache: ICacheProvider) {
+    this.httpClient = axios.create({ baseURL: GITHUB_API, headers: buildHeaders() });
+  }
 
   private async githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
     const cacheKey = `github:${path}`;
@@ -48,7 +52,7 @@ export class GithubService implements IGithubClient {
     }
 
     try {
-      const response = await axios.get<T>(`${GITHUB_API}${path}`, { headers: buildHeaders() });
+      const response = await this.httpClient.get<T>(path);
 
       await this.cache.set(cacheKey, JSON.stringify(response.data), CACHE_TTL).catch(() => {});
 

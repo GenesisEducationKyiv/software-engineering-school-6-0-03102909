@@ -3,7 +3,17 @@ import axios from 'axios';
 import { GithubService, GithubApiError } from '../github.service.js';
 import type { ICacheProvider } from '../../interfaces/infrastructure.interfaces.js';
 
-vi.mock('axios');
+vi.mock('axios', () => {
+  const mockAxiosInstance = {
+    get: vi.fn(),
+  };
+  return {
+    default: {
+      create: vi.fn(() => mockAxiosInstance),
+      isAxiosError: vi.fn(),
+    },
+  };
+});
 
 vi.mock('../../config/env.js', () => ({
   default: { GITHUB_TOKEN: 'fake-github-token' },
@@ -16,8 +26,9 @@ function createMocks() {
   };
 
   const service = new GithubService(cache);
+  const mockHttpClient = (axios.create as any).mock.results[0].value;
 
-  return { cache, service };
+  return { cache, service, mockHttpClient };
 }
 
 describe('GithubService', () => {
@@ -29,10 +40,10 @@ describe('GithubService', () => {
 
   describe('validateRepository()', () => {
     it('should return owner and name if repository exists (Cache Miss)', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
-      (axios.get as any).mockResolvedValue({ data: { id: 12345, full_name: 'owner/repo' } });
+      mockHttpClient.get.mockResolvedValue({ data: { id: 12345, full_name: 'owner/repo' } });
 
       (cache.set as any).mockResolvedValue(undefined);
 
@@ -40,20 +51,15 @@ describe('GithubService', () => {
 
       expect(result).toEqual({ owner: 'owner', name: 'repo' });
 
-      expect(axios.get).toHaveBeenCalledWith(
-        'https://api.github.com/repos/owner/repo',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer fake-github-token',
-          }),
-        }),
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        '/repos/owner/repo',
       );
 
       expect(cache.set).toHaveBeenCalledTimes(1);
     });
 
     it('should throw GithubApiError(404) if repository is not found', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
 
@@ -61,7 +67,7 @@ describe('GithubService', () => {
         isAxiosError: true,
         response: { status: 404 },
       };
-      (axios.get as any).mockRejectedValue(notFoundError);
+      mockHttpClient.get.mockRejectedValue(notFoundError);
 
       await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(GithubApiError);
       await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
@@ -70,11 +76,11 @@ describe('GithubService', () => {
     });
 
     it('should throw GithubApiError(503) on Rate Limit (403 or 429)', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
       const rateLimitError = { isAxiosError: true, response: { status: 403 } };
-      (axios.get as any).mockRejectedValue(rateLimitError);
+      mockHttpClient.get.mockRejectedValue(rateLimitError);
 
       await expect(service.validateRepository('owner', 'repo')).rejects.toThrow(
         'GitHub API rate limit exceeded',
@@ -84,21 +90,21 @@ describe('GithubService', () => {
 
   describe('getLatestRelease()', () => {
     it('should return the latest tag name from GitHub API (Cache Miss)', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
-      (axios.get as any).mockResolvedValue({ data: { tag_name: 'v2.0.0' } });
+      mockHttpClient.get.mockResolvedValue({ data: { tag_name: 'v2.0.0' } });
       (cache.set as any).mockResolvedValue(undefined);
 
       const result = await service.getLatestRelease('owner', 'repo');
 
       expect(result).toBe('v2.0.0');
-      expect(axios.get).toHaveBeenCalledTimes(1);
+      expect(mockHttpClient.get).toHaveBeenCalledTimes(1);
       expect(cache.set).toHaveBeenCalledTimes(1);
     });
 
     it('should return the latest tag name from cache (Cache Hit)', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       const cachedData = JSON.stringify({ tag_name: 'v1.5.0' });
       (cache.get as any).mockResolvedValue(cachedData);
@@ -107,16 +113,16 @@ describe('GithubService', () => {
 
       expect(result).toBe('v1.5.0');
 
-      expect(axios.get).not.toHaveBeenCalled();
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
       expect(cache.set).not.toHaveBeenCalled();
     });
 
     it('should throw GithubApiError(404) if release is not found', async () => {
-      const { cache, service } = createMocks();
+      const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
       const notFoundError = { isAxiosError: true, response: { status: 404 } };
-      (axios.get as any).mockRejectedValue(notFoundError);
+      mockHttpClient.get.mockRejectedValue(notFoundError);
 
       await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow(GithubApiError);
       await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow('Not found');
