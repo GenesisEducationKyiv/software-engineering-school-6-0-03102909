@@ -4,7 +4,7 @@ export interface ICacheProvider {
 }
 
 export interface IMailTransport {
-  sendMail(to: string, subject: string, html: string, text: string): Promise<void>;
+  sendMail(to: string, subject: string, html?: string, text?: string): Promise<void>;
 }
 
 export interface IGithubClient {
