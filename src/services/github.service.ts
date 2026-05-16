@@ -3,9 +3,6 @@ import config from '../config/env.js';
 import { HttpError } from '../errors/HttpError.js';
 import type { ICacheProvider, IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 
-const GITHUB_API = 'https://api.github.com';
-const CACHE_TTL = 600;
-
 export class GithubApiError extends HttpError {
   constructor(message: string, status: number) {
     super(message, status);
@@ -35,7 +32,7 @@ export class GithubService implements IGithubClient {
   private httpClient: AxiosInstance;
 
   constructor(private readonly cache: ICacheProvider) {
-    this.httpClient = axios.create({ baseURL: GITHUB_API, headers: buildHeaders() });
+    this.httpClient = axios.create({ baseURL: config.GITHUB_API_URL, headers: buildHeaders() });
   }
 
   private async githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
@@ -54,7 +51,7 @@ export class GithubService implements IGithubClient {
     try {
       const response = await this.httpClient.get<T>(path);
 
-      await this.cache.set(cacheKey, JSON.stringify(response.data), CACHE_TTL).catch(() => {});
+      await this.cache.set(cacheKey, JSON.stringify(response.data), config.GITHUB_CACHE_TTL).catch(() => {});
 
       return response;
     } catch (error: unknown) {
