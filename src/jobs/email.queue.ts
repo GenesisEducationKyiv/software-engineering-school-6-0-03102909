@@ -1,5 +1,10 @@
 import type { PgBoss } from 'pg-boss';
-import type { IJobQueue } from '../interfaces/infrastructure.interfaces.js';
+import type {
+  IConfirmationEmailQueue,
+  IReleaseNotificationQueue,
+  ConfirmationEmailDto,
+  ReleaseNotificationDto,
+} from '../interfaces/infrastructure.interfaces.js';
 
 export const QUEUE_NAME = 'send-email';
 
@@ -20,26 +25,21 @@ export interface ReleasePayload {
 
 export type EmailPayload = ConfirmationPayload | ReleasePayload;
 
-export class EmailJobQueue implements IJobQueue {
+export class EmailJobQueue implements IConfirmationEmailQueue, IReleaseNotificationQueue {
   constructor(private readonly boss: PgBoss) {}
 
-  async enqueueConfirmationEmail(to: string, repo: string, confirmToken: string): Promise<void> {
+  async enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void> {
     await this.boss.send(
       QUEUE_NAME,
-      { type: 'confirmation', to, repo, confirmToken },
+      { type: 'confirmation', ...data },
       { retryLimit: 3, retryDelay: 30 },
     );
   }
 
-  async enqueueReleaseNotification(
-    to: string,
-    repo: string,
-    tag: string,
-    unsubscribeToken: string,
-  ): Promise<void> {
+  async enqueueReleaseNotification(data: ReleaseNotificationDto): Promise<void> {
     await this.boss.send(
       QUEUE_NAME,
-      { type: 'release', to, repo, tag, unsubscribeToken },
+      { type: 'release', ...data },
       { retryLimit: 3, retryDelay: 30 },
     );
   }

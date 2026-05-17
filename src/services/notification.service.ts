@@ -1,10 +1,10 @@
 import type { ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
-import type { IJobQueue } from '../interfaces/infrastructure.interfaces.js';
+import type { IReleaseNotificationQueue } from '../interfaces/infrastructure.interfaces.js';
 
 export class NotificationService {
   constructor(
     private readonly subscriptionRepo: ISubscriptionRepository,
-    private readonly jobQueue: IJobQueue,
+    private readonly jobQueue: IReleaseNotificationQueue,
   ) {}
 
   async notifySubscribers(repoId: string, repoFullName: string, tag: string): Promise<void> {
@@ -12,12 +12,12 @@ export class NotificationService {
 
     for (const sub of subscribers) {
       try {
-        await this.jobQueue.enqueueReleaseNotification(
-          sub.subscriber.email,
-          repoFullName,
+        await this.jobQueue.enqueueReleaseNotification({
+          to: sub.subscriber.email,
+          repo: repoFullName,
           tag,
-          sub.unsubscribeToken,
-        );
+          unsubscribeToken: sub.unsubscribeToken,
+        });
       } catch (err) {
         console.error(
           `notification failed to enqueue for ${sub.subscriber.email} about ${repoFullName}:`,

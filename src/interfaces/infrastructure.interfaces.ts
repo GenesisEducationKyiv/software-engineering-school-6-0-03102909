@@ -12,12 +12,23 @@ export interface IGithubClient {
   getLatestRelease(owner: string, name: string): Promise<string>;
 }
 
-export interface IJobQueue {
-  enqueueConfirmationEmail(to: string, repo: string, confirmToken: string): Promise<void>;
-  enqueueReleaseNotification(
-    to: string,
-    repo: string,
-    tag: string,
-    unsubscribeToken: string,
-  ): Promise<void>;
+export interface ConfirmationEmailDto {
+  to: string;
+  repo: string;
+  confirmToken: string;
+}
+
+export interface ReleaseNotificationDto {
+  to: string;
+  repo: string;
+  tag: string;
+  unsubscribeToken: string;
+}
+
+export interface IConfirmationEmailQueue {
+  enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void>;
+}
+
+export interface IReleaseNotificationQueue {
+  enqueueReleaseNotification(data: ReleaseNotificationDto): Promise<void>;
 }
