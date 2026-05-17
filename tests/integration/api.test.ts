@@ -7,7 +7,7 @@ const API_KEY = vi.hoisted(() => {
   return key;
 });
 
-vi.mock('../src/container.js', () => {
+vi.mock('../../src/container.js', () => {
   const subscriptionService = {
     subscribe: vi.fn(),
     confirmSubscription: vi.fn(),
@@ -17,9 +17,9 @@ vi.mock('../src/container.js', () => {
   return { subscriptionService };
 });
 
-import app from '../src/app.js';
-import { HttpError } from '../src/errors/HttpError.js';
-import { subscriptionService } from '../src/container.js';
+import app from '../../src/app.js';
+import { HttpError } from '../../src/errors/HttpError.js';
+import { subscriptionService } from '../../src/container.js';
 
 function authGet(path: string) {
   return request(app).get(path).set('X-API-Key', API_KEY);
@@ -40,6 +40,29 @@ describe('API Contract Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should call subscribe service with correct args', async () => {
+      (subscriptionService.subscribe as any).mockResolvedValue({ id: 1 });
+
+      await request(app)
+        .post('/api/subscribe')
+        .send({ email: 'Test@Example.com', repo: 'Owner/Repo' });
+
+      expect(subscriptionService.subscribe).toHaveBeenCalledWith('test@example.com', 'owner/repo');
+    });
+
+    it('should return 500 when service throws unexpected error', async () => {
+      (subscriptionService.subscribe as any).mockRejectedValue(new Error('DB connection lost'));
+
+      const response = await request(app)
+        .post('/api/subscribe')
+        .send({ email: 'test@example.com', repo: 'owner/repo' });
+
+      expect(response.status).toBe(500);
+      expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
     it('should return 400 for missing email', async () => {
@@ -107,6 +130,17 @@ describe('API Contract Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should call confirmSubscription with correct token', async () => {
+      (subscriptionService.confirmSubscription as any).mockResolvedValue({ id: 1 });
+
+      await request(app).get('/api/confirm/11111111-1111-1111-1111-111111111111');
+
+      expect(subscriptionService.confirmSubscription).toHaveBeenCalledWith(
+        '11111111-1111-1111-1111-111111111111',
+      );
     });
 
     it('should return 404 when token is not found', async () => {
@@ -139,6 +173,17 @@ describe('API Contract Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should call unsubscribe with correct token', async () => {
+      (subscriptionService.unsubscribe as any).mockResolvedValue(undefined);
+
+      await request(app).get('/api/unsubscribe/11111111-1111-1111-1111-111111111111');
+
+      expect(subscriptionService.unsubscribe).toHaveBeenCalledWith(
+        '11111111-1111-1111-1111-111111111111',
+      );
     });
 
     it('should return 404 when token is not found', async () => {
@@ -215,6 +260,42 @@ describe('API Contract Tests', () => {
 
       expect(response.status).toBe(401);
       expect(response.headers['content-type']).toMatch(/json/);
+    });
+
+    it('should return 401 with wrong API key', async () => {
+      const response = await request(app)
+        .get('/api/subscriptions?email=test@example.com')
+        .set('X-API-Key', 'wrong-key');
+
+      expect(response.status).toBe(401);
+      expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toEqual({ error: 'Unauthorized: invalid or missing API key' });
+    });
+
+    it('should call getSubscriptions with correct email', async () => {
+      (subscriptionService.getSubscriptions as any).mockResolvedValue([]);
+
+      await authGet('/api/subscriptions?email=test@example.com');
+
+      expect(subscriptionService.getSubscriptions).toHaveBeenCalledWith('test@example.com');
+    });
+  });
+
+  describe('GET /metrics', () => {
+    it('should return 200 with metrics content', async () => {
+      const response = await request(app).get('/metrics');
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Unknown endpoint', () => {
+    it('should return 404 for unknown route', async () => {
+      const response = await request(app).get('/api/nonexistent');
+
+      expect(response.status).toBe(404);
+      expect(response.headers['content-type']).toMatch(/json/);
+      expect(response.body).toEqual({ error: 'Unknown endpoint' });
     });
   });
 });
