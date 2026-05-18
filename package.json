@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@testcontainers/postgresql": "^11.14.0",
     "@testcontainers/redis": "^11.14.0",
     "@types/express": "^5.0.6",
