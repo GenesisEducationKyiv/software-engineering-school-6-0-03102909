@@ -12,7 +12,7 @@ An API service that allows users to subscribe to email notifications about new r
 - Queue/Scheduler: pg-boss
 - Email Provider: Resend
 - Validation: Zod
-- Testing: Vitest
+- Testing: Vitest, Playwright, Testcontainers
 - Containerization: Docker & Docker Compose
 
 ## Setup & Installation
@@ -35,13 +35,33 @@ docker compose up -d
 
 ### 3. Testing
 
-To run the automated unit tests covering the business logic:
+Prerequisites: Node.js ≥ 22, Docker (running).
+
+```bash
+npm ci
+npx prisma generate
+```
+
+**Unit tests**:
 
 ```bash
 npm run test
 ```
 
-_(Dependencies must be installed locally via `npm install` before running tests outside of a container)._
+**Integration tests**:
+
+```bash
+npm run test:integration
+```
+
+**E2E tests**:
+
+```bash
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+See [testing.md](testing.md) for details.
 
 ## Implementation Logic & API Endpoints
 
