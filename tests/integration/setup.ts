@@ -25,7 +25,29 @@ export async function truncateTables(): Promise<void> {
   );
 }
 
+export async function query(sql: string, params?: unknown[]): Promise<import('pg').QueryResult> {
+  return pool.query(sql, params);
+}
+
+// helpers - tokens are not exposed via api 
+
+export async function getConfirmToken(email: string): Promise<string> {
+  const result = await pool.query(
+    'SELECT s.confirm_token FROM subscriptions s JOIN subscribers sub ON s.subscriber_id = sub.id WHERE sub.email = $1',
+    [email],
+  );
+  return result.rows[0]?.confirm_token as string;
+}
+
+export async function getUnsubscribeToken(email: string): Promise<string> {
+  const result = await pool.query(
+    'SELECT s.unsubscribe_token FROM subscriptions s JOIN subscribers sub ON s.subscriber_id = sub.id WHERE sub.email = $1',
+    [email],
+  );
+  return result.rows[0]?.unsubscribe_token as string;
+}
+
 export async function stopPostgres(): Promise<void> {
-  await pool.end();
-  await container.stop();
+  if (pool) await pool.end();
+  if (container) await container.stop();
 }
