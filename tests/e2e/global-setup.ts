@@ -40,6 +40,7 @@ export default async function globalSetup() {
       NODE_ENV: 'test',
     },
     stdio: 'pipe',
+    detached: true,
   });
 
   appProcess.stderr?.on('data', (data: Buffer) => {
@@ -50,9 +51,10 @@ export default async function globalSetup() {
 }
 
 export async function globalTeardown() {
-  if (appProcess) {
-    appProcess.kill('SIGTERM');
-    await new Promise((resolve) => appProcess.on('close', resolve));
+  if (appProcess?.pid) {
+    try {
+      process.kill(-appProcess.pid, 'SIGKILL');
+    } catch {}
   }
   if (redisContainer) await redisContainer.stop();
   if (pgContainer) await pgContainer.stop();
