@@ -42,6 +42,7 @@ beforeAll(async () => {
 
   process.env['DATABASE_URL'] = databaseUrl;
   process.env['API_KEY'] = API_KEY;
+  process.env['RESEND_API_KEY'] = 're_test_dummy_key';
 
   const appModule = await import('../../src/app.js');
   app = appModule.default;
