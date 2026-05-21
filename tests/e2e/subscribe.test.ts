@@ -49,7 +49,7 @@ test.describe('Subscribe Page', () => {
     await expect(page.locator('#error')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('should show conflict error when subscribing same email+repo twice after confirmation', async ({ page }) => {
+  test('should show success when resending confirmation email', async ({ page }) => {
     const uniqueEmail = `dup-${Date.now()}@example.com`;
 
     const subscribeRes = await page.request.post('/api/subscribe', {
