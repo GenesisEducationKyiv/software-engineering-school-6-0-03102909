@@ -1,52 +1,52 @@
 import { test, expect } from '@playwright/test';
+import { SubscribePage } from './pages/subscribe.page';
 
 test.describe('Subscribe Page', () => {
+  let subscribePage: SubscribePage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    subscribePage = new SubscribePage(page);
+    await subscribePage.goto();
   });
 
-  test('should display the subscription form', async ({ page }) => {
-    await expect(page.locator('h1')).toHaveText('GitHub release notifications');
-    await expect(page.locator('#email')).toBeVisible();
-    await expect(page.locator('#repo')).toBeVisible();
-    await expect(page.locator('#submit-btn')).toHaveText('Subscribe');
+  test('should display the subscription form', async () => {
+    await expect(subscribePage.heading).toHaveText('GitHub release notifications');
+    await expect(subscribePage.emailInput).toBeVisible();
+    await expect(subscribePage.repoInput).toBeVisible();
+    await expect(subscribePage.submitBtn).toHaveText('Subscribe');
   });
 
-  test('should show error when fields are empty', async ({ page }) => {
-    await page.click('#submit-btn');
+  test('should show error when fields are empty', async () => {
+    await subscribePage.submitBtn.click();
 
-    await expect(page.locator('#error')).toBeVisible();
-    await expect(page.locator('#error-msg')).toHaveText('Please fill in all fields.');
+    await expect(subscribePage.errorContainer).toBeVisible();
+    await expect(subscribePage.errorMsgText).toHaveText('Please fill in all fields.');
   });
 
-  test('should show error when only email is filled', async ({ page }) => {
-    await page.fill('#email', 'test@example.com');
-    await page.click('#submit-btn');
+  test('should show error when only email is filled', async () => {
+    await subscribePage.emailInput.fill('test@example.com');
+    await subscribePage.submitBtn.click();
 
-    await expect(page.locator('#error')).toBeVisible();
-    await expect(page.locator('#error-msg')).toHaveText('Please fill in all fields.');
+    await expect(subscribePage.errorContainer).toBeVisible();
+    await expect(subscribePage.errorMsgText).toHaveText('Please fill in all fields.');
   });
 
-  test('should subscribe successfully with valid input', async ({ page }) => {
+  test('should subscribe successfully with valid input', async () => {
     const uniqueEmail = `e2e-${Date.now()}@example.com`;
 
-    await page.fill('#email', uniqueEmail);
-    await page.fill('#repo', 'facebook/react');
-    await page.click('#submit-btn');
+    await subscribePage.subscribe(uniqueEmail, 'facebook/react');
 
-    await expect(page.locator('#submit-btn')).toHaveText('Subscribing...');
-    await expect(page.locator('#success')).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('#email')).toHaveValue('');
-    await expect(page.locator('#repo')).toHaveValue('');
-    await expect(page.locator('#submit-btn')).toHaveText('Subscribe');
+    await expect(subscribePage.submitBtn).toHaveText('Subscribing...');
+    await expect(subscribePage.successContainer).toBeVisible({ timeout: 15_000 });
+    await expect(subscribePage.emailInput).toHaveValue('');
+    await expect(subscribePage.repoInput).toHaveValue('');
+    await expect(subscribePage.submitBtn).toHaveText('Subscribe');
   });
 
-  test('should show error for non-existent repository', async ({ page }) => {
-    await page.fill('#email', 'test@example.com');
-    await page.fill('#repo', 'nonexistent-owner-xyz/nonexistent-repo-xyz');
-    await page.click('#submit-btn');
+  test('should show error for non-existent repository', async () => {
+    await subscribePage.subscribe('test@example.com', 'nonexistent-owner-xyz/nonexistent-repo-xyz');
 
-    await expect(page.locator('#error')).toBeVisible({ timeout: 15_000 });
+    await expect(subscribePage.errorContainer).toBeVisible({ timeout: 15_000 });
   });
 
   test('should show success when resending confirmation email', async ({ page }) => {
@@ -57,10 +57,8 @@ test.describe('Subscribe Page', () => {
     });
     expect(subscribeRes.ok()).toBeTruthy();
 
-    await page.fill('#email', uniqueEmail);
-    await page.fill('#repo', 'facebook/react');
-    await page.click('#submit-btn');
+    await subscribePage.subscribe(uniqueEmail, 'facebook/react');
 
-    await expect(page.locator('#success')).toBeVisible({ timeout: 15_000 });
+    await expect(subscribePage.successContainer).toBeVisible({ timeout: 15_000 });
   });
 });
