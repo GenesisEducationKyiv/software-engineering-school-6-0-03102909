@@ -47,3 +47,14 @@ Automatically starts PostgreSQL and Redis containers, boots the real application
 ```bash
 npm run test && npm run test:integration && npm run test:e2e
 ```
+
+## Test Conventions
+
+- **Unit** - Vitest — `src/**/__tests__/*.test.ts`
+- **Integration** — Vitest — `tests/integration/*.test.ts`
+- **E2E** — Playwright — `tests/e2e/*.test.ts`
+
+- All test files use `.test.ts` extension
+- Unit tests live next to source in `__tests__/` dirs; integration and E2E live in top-level `tests/`
+- `describe` groups by class/module, then method; `it` descriptions start with **"should"**
+- **CI Pipeline**: All tests run in parallel GitHub Actions jobs (`unit-tests`, `integration-tests`, `e2e-tests`) after `lint` passes
