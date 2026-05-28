@@ -1,5 +1,13 @@
 import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
+import { AppError } from '../errors/AppError.js';
+
+export class MailerError extends AppError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MailerError';
+  }
+}
 
 export class MailerService {
   constructor(private readonly resend: Resend) {}
@@ -13,7 +21,7 @@ export class MailerService {
       text: text ?? '',
     });
     if (error) {
-      throw new Error(`Resend API Error: ${error.message}`);
+      throw new MailerError(`Resend API Error: ${error.message}`);
     }
   }
 

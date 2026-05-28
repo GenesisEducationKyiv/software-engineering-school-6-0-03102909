@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { GithubService, GithubApiError } from '../github.service.js';
+import { GithubService, GithubApiError, GithubNotFoundError, GithubRateLimitError } from '../github.service.js';
 
 vi.mock('axios', () => {
   const mockAxiosInstance = {
@@ -55,7 +55,7 @@ describe('GithubService', () => {
       expect(cache.set).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw GithubApiError(404) if repository is not found', async () => {
+    it('should throw GithubNotFoundError if repository is not found', async () => {
       const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
@@ -67,14 +67,14 @@ describe('GithubService', () => {
       mockHttpClient.get.mockRejectedValue(notFoundError);
 
       await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
-        GithubApiError,
+        GithubNotFoundError,
       );
       await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
         'Repository bad-owner/bad-repo not found',
       );
     });
 
-    it('should throw GithubApiError(503) on Rate Limit (403 or 429)', async () => {
+    it('should throw GithubRateLimitError on Rate Limit (403 or 429)', async () => {
       const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
@@ -116,14 +116,14 @@ describe('GithubService', () => {
       expect(cache.set).not.toHaveBeenCalled();
     });
 
-    it('should throw GithubApiError(404) if release is not found', async () => {
+    it('should throw GithubNotFoundError if release is not found', async () => {
       const { cache, service, mockHttpClient } = createMocks();
 
       (cache.get as any).mockResolvedValue(null);
       const notFoundError = { isAxiosError: true, response: { status: 404 } };
       mockHttpClient.get.mockRejectedValue(notFoundError);
 
-      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow(GithubApiError);
+      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow(GithubNotFoundError);
       await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow('Not found');
     });
   });

@@ -1,26 +1,26 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
-import { HttpError } from '../errors/HttpError.js';
+import { AppError } from '../errors/AppError.js';
 import type { redis } from '../db/redis.js';
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 
-export class GithubApiError extends HttpError {
-  constructor(message: string, status: number) {
-    super(message, status);
+export class GithubApiError extends AppError {
+  constructor(message: string) {
+    super(message);
     this.name = 'GithubApiError';
   }
 }
 
 export class GithubNotFoundError extends GithubApiError {
   constructor(message = 'Not found') {
-    super(message, 404);
+    super(message);
     this.name = 'GithubNotFoundError';
   }
 }
 
 export class GithubRateLimitError extends GithubApiError {
   constructor(message = 'GitHub API rate limit exceeded') {
-    super(message, 503);
+    super(message);
     this.name = 'GithubRateLimitError';
   }
 }
@@ -84,7 +84,7 @@ export class GithubService implements IGithubClient {
         }
       }
 
-      throw new GithubApiError(fallbackError, 500);
+      throw new GithubApiError(fallbackError);
     }
   }
 

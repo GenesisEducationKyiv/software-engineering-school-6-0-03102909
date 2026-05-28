@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScannerService } from '../scanner.service.js';
-import { GithubApiError } from '../github.service.js';
+import { GithubRateLimitError } from '../github.service.js';
 import type {
   IRepositoryRepository,
   ISubscriptionRepository,
@@ -44,9 +44,9 @@ describe('ScannerService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    _consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    _consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -100,7 +100,7 @@ describe('ScannerService', () => {
 
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
     (githubClient.getLatestRelease as any).mockRejectedValueOnce(
-      new GithubApiError('Rate Limit', 503),
+      new GithubRateLimitError(),
     );
 
     await scannerService.scanAllRepositories();

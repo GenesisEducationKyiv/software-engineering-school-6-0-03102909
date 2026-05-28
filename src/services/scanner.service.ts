@@ -4,7 +4,7 @@ import type {
 } from '../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 import type { MailerService } from './mailer.service.js';
-import { GithubApiError, GithubNotFoundError, GithubRateLimitError } from './github.service.js';
+import { GithubNotFoundError, GithubRateLimitError } from './github.service.js';
 
 export class ScannerService {
   constructor(
