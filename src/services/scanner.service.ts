@@ -4,7 +4,7 @@ import type {
 } from '../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 import type { MailerService } from './mailer.service.js';
-import { GithubApiError } from './github.service.js';
+import { GithubApiError, GithubNotFoundError, GithubRateLimitError } from './github.service.js';
 
 export class ScannerService {
   constructor(
@@ -35,17 +35,15 @@ export class ScannerService {
 
         await this.repositoryRepo.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
-        if (err instanceof GithubApiError) {
-          if (err.status === 404) {
-            console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
-            continue;
-          }
-          if (err.status === 503) {
-            console.warn(
-              `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
-            );
-            break;
-          }
+        if (err instanceof GithubNotFoundError) {
+          console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
+          continue;
+        }
+        if (err instanceof GithubRateLimitError) {
+          console.warn(
+            `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
+          );
+          break;
         }
         console.error(`scanner error scanning ${repo.owner}/${repo.name}:`, err);
       }

@@ -11,6 +11,20 @@ export class GithubApiError extends HttpError {
   }
 }
 
+export class GithubNotFoundError extends GithubApiError {
+  constructor(message = 'Not found') {
+    super(message, 404);
+    this.name = 'GithubNotFoundError';
+  }
+}
+
+export class GithubRateLimitError extends GithubApiError {
+  constructor(message = 'GitHub API rate limit exceeded') {
+    super(message, 503);
+    this.name = 'GithubRateLimitError';
+  }
+}
+
 export interface GithubRepoData {
   owner: string;
   name: string;
@@ -62,11 +76,11 @@ export class GithubService implements IGithubClient {
         const status = error.response?.status;
 
         if (status === 404) {
-          throw new GithubApiError('Not found', 404);
+          throw new GithubNotFoundError();
         }
 
         if (status === 403 || status === 429) {
-          throw new GithubApiError('GitHub API rate limit exceeded', 503);
+          throw new GithubRateLimitError();
         }
       }
 
@@ -79,8 +93,8 @@ export class GithubService implements IGithubClient {
       await this.githubGet(`/repos/${owner}/${name}`, 'Failed to validate repository');
       return { owner, name };
     } catch (error) {
-      if (error instanceof GithubApiError && error.status === 404) {
-        throw new GithubApiError(`Repository ${owner}/${name} not found`, 404);
+      if (error instanceof GithubNotFoundError) {
+        throw new GithubNotFoundError(`Repository ${owner}/${name} not found`);
       }
       throw error;
     }
