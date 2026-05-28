@@ -1,7 +1,8 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
 import { HttpError } from '../errors/HttpError.js';
-import type { ICacheProvider, IGithubClient } from '../interfaces/infrastructure.interfaces.js';
+import type { redis } from '../db/redis.js';
+import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 
 export class GithubApiError extends HttpError {
   constructor(message: string, status: number) {
@@ -31,7 +32,7 @@ function buildHeaders(): Record<string, string> {
 export class GithubService implements IGithubClient {
   private httpClient: AxiosInstance;
 
-  constructor(private readonly cache: ICacheProvider) {
+  constructor(private readonly cache: typeof redis) {
     this.httpClient = axios.create({ baseURL: config.GITHUB_API_URL, headers: buildHeaders() });
   }
 
@@ -51,7 +52,9 @@ export class GithubService implements IGithubClient {
     try {
       const response = await this.httpClient.get<T>(path);
 
-      await this.cache.set(cacheKey, JSON.stringify(response.data), config.GITHUB_CACHE_TTL).catch(() => {});
+      await this.cache
+        .set(cacheKey, JSON.stringify(response.data), { EX: config.GITHUB_CACHE_TTL })
+        .catch(() => {});
 
       return response;
     } catch (error: unknown) {
@@ -85,7 +88,10 @@ export class GithubService implements IGithubClient {
 
   async getLatestRelease(owner: string, name: string): Promise<string> {
     const path = `/repos/${owner}/${name}/releases/latest`;
-    const response = await this.githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
+    const response = await this.githubGet<{ tag_name: string }>(
+      path,
+      'Failed to fetch latest release',
+    );
     return response.data.tag_name;
   }
 }

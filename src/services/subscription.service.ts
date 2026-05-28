@@ -1,5 +1,8 @@
 import type { ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
-import type { IGithubClient, IConfirmationEmailQueue } from '../interfaces/infrastructure.interfaces.js';
+import type {
+  IGithubClient,
+  IConfirmationEmailQueue,
+} from '../interfaces/infrastructure.interfaces.js';
 import { HttpError } from '../errors/HttpError.js';
 
 export class SubscriptionService {
@@ -27,7 +30,11 @@ export class SubscriptionService {
       throw new HttpError('Email is already subscribed to this repository', 409);
     }
 
-    await this.jobQueue.enqueueConfirmationEmail({ to: email, repo, confirmToken: subscription.confirmToken });
+    await this.jobQueue.enqueueConfirmationEmail({
+      to: email,
+      repo,
+      confirmToken: subscription.confirmToken,
+    });
 
     return subscription;
   }

@@ -82,7 +82,9 @@ describe('ScannerService', () => {
     ];
 
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
-    (githubClient.getLatestRelease as any).mockRejectedValueOnce(new GithubApiError('Rate Limit', 503));
+    (githubClient.getLatestRelease as any).mockRejectedValueOnce(
+      new GithubApiError('Rate Limit', 503),
+    );
 
     await scannerService.scanAllRepositories();
 

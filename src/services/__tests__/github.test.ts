@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { GithubService, GithubApiError } from '../github.service.js';
-import type { ICacheProvider } from '../../interfaces/infrastructure.interfaces.js';
 
 vi.mock('axios', () => {
   const mockAxiosInstance = {
@@ -20,10 +19,10 @@ vi.mock('../../config/env.js', () => ({
 }));
 
 function createMocks() {
-  const cache: ICacheProvider = {
+  const cache = {
     get: vi.fn(),
     set: vi.fn(),
-  };
+  } as any;
 
   const service = new GithubService(cache);
   const mockHttpClient = (axios.create as any).mock.results[0].value;
@@ -51,9 +50,7 @@ describe('GithubService', () => {
 
       expect(result).toEqual({ owner: 'owner', name: 'repo' });
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
-        '/repos/owner/repo',
-      );
+      expect(mockHttpClient.get).toHaveBeenCalledWith('/repos/owner/repo');
 
       expect(cache.set).toHaveBeenCalledTimes(1);
     });
@@ -69,7 +66,9 @@ describe('GithubService', () => {
       };
       mockHttpClient.get.mockRejectedValue(notFoundError);
 
-      await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(GithubApiError);
+      await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
+        GithubApiError,
+      );
       await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
         'Repository bad-owner/bad-repo not found',
       );

@@ -4,11 +4,11 @@ import { ScannerService } from '../services/scanner.service.js';
 import { SubscriptionService } from '../services/subscription.service.js';
 import { NotificationService } from '../services/notification.service.js';
 
-import { cacheProvider, mailTransport, emailJobQueue } from './infrastructure.js';
+import { redis, resend, emailJobQueue } from './infrastructure.js';
 import { repositoryRepository, subscriptionRepository } from './repositories.js';
 
-export const githubClient = new GithubService(cacheProvider);
-export const mailerService = new MailerService(mailTransport);
+export const githubClient = new GithubService(redis);
+export const mailerService = new MailerService(resend);
 export const subscriptionService = new SubscriptionService(
   subscriptionRepository,
   githubClient,
