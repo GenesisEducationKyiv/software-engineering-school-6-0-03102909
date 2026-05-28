@@ -1,22 +1,23 @@
-import { repositoryRepository } from '../repositories/repository.repository.js';
-import { subscriptionRepository } from '../repositories/subscription.repository.js';
-import { getLatestRelease, GithubApiError } from './github.service.js';
-import { enqueueReleaseNotification } from '../jobs/email.job.js';
+import type { IRepositoryRepository } from '../interfaces/repository.interfaces.js';
+import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
+import type { NotificationService } from './notification.service.js';
+import { GithubApiError } from './github.service.js';
 
-export const scannerService = {
+export class ScannerService {
+  constructor(
+    private readonly repositoryRepo: IRepositoryRepository,
+    private readonly githubClient: IGithubClient,
+    private readonly notificationService: NotificationService,
+  ) {}
+
   async scanAllRepositories(): Promise<void> {
-    const repositories = await repositoryRepository.findAllWithConfirmedSubscriptions();
+    const repositories = await this.repositoryRepo.findAllWithConfirmedSubscriptions();
 
     console.log(`scanner found ${repositories.length} repositories to check`);
 
     for (const repo of repositories) {
       try {
-        const latestTag = await getLatestRelease(repo.owner, repo.name);
-
-        if (!latestTag) {
-          console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
-          continue;
-        }
+        const latestTag = await this.githubClient.getLatestRelease(repo.owner, repo.name);
 
         if (latestTag === repo.lastSeenTag) {
           continue;
@@ -26,34 +27,28 @@ export const scannerService = {
           `scanner ${repo.owner}/${repo.name}: new release ${latestTag} (was: ${repo.lastSeenTag ?? 'none'})`,
         );
 
-        const subscribers = await subscriptionRepository.findConfirmedSubscribersByRepo(repo.id);
+        await this.notificationService.notifySubscribers(
+          repo.id,
+          `${repo.owner}/${repo.name}`,
+          latestTag,
+        );
 
-        for (const sub of subscribers) {
-          try {
-            await enqueueReleaseNotification(
-              sub.subscriber.email,
-              `${repo.owner}/${repo.name}`,
-              latestTag,
-              sub.unsubscribeToken,
-            );
-          } catch (notifyErr) {
-            console.error(
-              `scanner failed to enqueue notification for ${sub.subscriber.email} about ${repo.owner}/${repo.name}:`,
-              notifyErr,
-            );
-          }
-        }
-
-        await repositoryRepository.updateLastSeenTag(repo.id, latestTag);
+        await this.repositoryRepo.updateLastSeenTag(repo.id, latestTag);
       } catch (err) {
-        if (err instanceof GithubApiError && err.status === 503) {
-          console.warn(
-            `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
-          );
-          break;
+        if (err instanceof GithubApiError) {
+          if (err.status === 404) {
+            console.log(`scanner ${repo.owner}/${repo.name}: no releases found`);
+            continue;
+          }
+          if (err.status === 503) {
+            console.warn(
+              `scanner rate-limited while checking ${repo.owner}/${repo.name}, skipping remaining`,
+            );
+            break;
+          }
         }
         console.error(`scanner error scanning ${repo.owner}/${repo.name}:`, err);
       }
     }
-  },
-};
+  }
+}

@@ -1,33 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpError } from '../../errors/HttpError.js';
+import { SubscriptionService } from '../subscription.service.js';
+import type { ISubscriptionRepository } from '../../interfaces/repository.interfaces.js';
+import type { IGithubClient, IConfirmationEmailQueue } from '../../interfaces/infrastructure.interfaces.js';
 
-vi.mock('../../repositories/subscription.repository.js', () => ({
-  subscriptionRepository: {
+function createMocks() {
+  const subscriptionRepo: ISubscriptionRepository = {
     createOrGet: vi.fn(),
     confirmToken: vi.fn(),
     removeByUnsubscribeToken: vi.fn(),
     findByEmail: vi.fn(),
-  },
-}));
+    findConfirmedSubscribersByRepo: vi.fn(),
+  };
 
-vi.mock('../github.service.js', () => ({
-  validateRepository: vi.fn(),
-  getLatestRelease: vi.fn(),
-}));
+  const githubClient: IGithubClient = {
+    validateRepository: vi.fn(),
+    getLatestRelease: vi.fn(),
+  };
 
-vi.mock('../../jobs/email.job.js', () => ({
-  enqueueConfirmationEmail: vi.fn(),
-}));
+  const jobQueue: IConfirmationEmailQueue = {
+    enqueueConfirmationEmail: vi.fn(),
+  };
 
-import { subscriptionRepository } from '../../repositories/subscription.repository.js';
-import { validateRepository, getLatestRelease } from '../github.service.js';
-import { enqueueConfirmationEmail } from '../../jobs/email.job.js';
-import {
-  subscribe,
-  confirmSubscription,
-  unsubscribe,
-  getSubscriptions,
-} from '../subscription.service.js';
+  const service = new SubscriptionService(subscriptionRepo, githubClient, jobQueue);
+
+  return { subscriptionRepo, githubClient, jobQueue, service };
+}
 
 describe('SubscriptionService', () => {
   beforeEach(() => {
@@ -36,87 +34,104 @@ describe('SubscriptionService', () => {
 
   describe('subscribe()', () => {
     it('should successfully create a subscription and enqueue a confirmation email', async () => {
+      const { subscriptionRepo, githubClient, jobQueue, service } = createMocks();
+
       const mockEmail = 'test@example.com';
       const mockRepo = 'owner/repo';
       const mockSubscription = { confirmToken: 'fake-token', isConfirmed: false };
 
-      (validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
-      (getLatestRelease as any).mockResolvedValue('v1.0.0');
-      (subscriptionRepository.createOrGet as any).mockResolvedValue({
+      (githubClient.validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
+      (githubClient.getLatestRelease as any).mockResolvedValue('v1.0.0');
+      (subscriptionRepo.createOrGet as any).mockResolvedValue({
         subscription: mockSubscription,
         created: true,
       });
 
-      const result = await subscribe(mockEmail, mockRepo);
+      const result = await service.subscribe(mockEmail, mockRepo);
 
       expect(result).toEqual(mockSubscription);
-      expect(validateRepository).toHaveBeenCalledWith('owner', 'repo');
-      expect(getLatestRelease).toHaveBeenCalledWith('owner', 'repo');
-      expect(subscriptionRepository.createOrGet).toHaveBeenCalledWith(mockEmail, 'owner', 'repo', 'v1.0.0');
-      expect(enqueueConfirmationEmail).toHaveBeenCalledWith(mockEmail, mockRepo, 'fake-token');
+      expect(githubClient.validateRepository).toHaveBeenCalledWith('owner', 'repo');
+      expect(githubClient.getLatestRelease).toHaveBeenCalledWith('owner', 'repo');
+      expect(subscriptionRepo.createOrGet).toHaveBeenCalledWith(mockEmail, 'owner', 'repo', 'v1.0.0');
+      expect(jobQueue.enqueueConfirmationEmail).toHaveBeenCalledWith({ to: mockEmail, repo: mockRepo, confirmToken: 'fake-token' });
     });
 
     it('should throw a 409 conflict error if user is already subscribed and confirmed', async () => {
-      (validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
-      (subscriptionRepository.createOrGet as any).mockResolvedValue({
+      const { subscriptionRepo, githubClient, jobQueue, service } = createMocks();
+
+      (githubClient.validateRepository as any).mockResolvedValue({ owner: 'owner', name: 'repo' });
+      (githubClient.getLatestRelease as any).mockRejectedValue(new Error('Not found'));
+      (subscriptionRepo.createOrGet as any).mockResolvedValue({
         subscription: { isConfirmed: true },
         created: false,
       });
 
-      await expect(subscribe('test@example.com', 'owner/repo')).rejects.toThrow(HttpError);
-      await expect(subscribe('test@example.com', 'owner/repo')).rejects.toThrow(
+      await expect(service.subscribe('test@example.com', 'owner/repo')).rejects.toThrow(HttpError);
+      await expect(service.subscribe('test@example.com', 'owner/repo')).rejects.toThrow(
         'Email is already subscribed',
       );
-      expect(enqueueConfirmationEmail).not.toHaveBeenCalled();
+      expect(jobQueue.enqueueConfirmationEmail).not.toHaveBeenCalled();
     });
 
     it('should throw an error if the GitHub repository is invalid or not found', async () => {
-      (validateRepository as any).mockRejectedValue(new Error('Not found on GitHub'));
+      const { subscriptionRepo, githubClient, service } = createMocks();
 
-      await expect(subscribe('test@example.com', 'invalid/repo')).rejects.toThrow(
+      (githubClient.validateRepository as any).mockRejectedValue(new Error('Not found on GitHub'));
+
+      await expect(service.subscribe('test@example.com', 'invalid/repo')).rejects.toThrow(
         'Not found on GitHub',
       );
-      expect(subscriptionRepository.createOrGet).not.toHaveBeenCalled();
+      expect(subscriptionRepo.createOrGet).not.toHaveBeenCalled();
     });
   });
 
   describe('confirmSubscription()', () => {
     it('should successfully confirm a subscription with a valid token', async () => {
-      const mockSub = { id: 1, isConfirmed: true };
-      (subscriptionRepository.confirmToken as any).mockResolvedValue(mockSub);
+      const { subscriptionRepo, service } = createMocks();
 
-      const result = await confirmSubscription('valid-token');
+      const mockSub = { id: 1, isConfirmed: true };
+      (subscriptionRepo.confirmToken as any).mockResolvedValue(mockSub);
+
+      const result = await service.confirmSubscription('valid-token');
 
       expect(result).toEqual(mockSub);
-      expect(subscriptionRepository.confirmToken).toHaveBeenCalledWith('valid-token');
+      expect(subscriptionRepo.confirmToken).toHaveBeenCalledWith('valid-token');
     });
 
     it('should throw a 404 error if the confirmation token is not found', async () => {
-      (subscriptionRepository.confirmToken as any).mockResolvedValue(null);
+      const { subscriptionRepo, service } = createMocks();
 
-      await expect(confirmSubscription('bad-token')).rejects.toThrow(HttpError);
-      await expect(confirmSubscription('bad-token')).rejects.toThrow('Token not found');
+      (subscriptionRepo.confirmToken as any).mockResolvedValue(null);
+
+      await expect(service.confirmSubscription('bad-token')).rejects.toThrow(HttpError);
+      await expect(service.confirmSubscription('bad-token')).rejects.toThrow('Token not found');
     });
   });
 
   describe('unsubscribe()', () => {
     it('should successfully remove a subscription with a valid unsubscribe token', async () => {
-      (subscriptionRepository.removeByUnsubscribeToken as any).mockResolvedValue(true);
+      const { subscriptionRepo, service } = createMocks();
 
-      await expect(unsubscribe('valid-token')).resolves.toBeUndefined();
-      expect(subscriptionRepository.removeByUnsubscribeToken).toHaveBeenCalledWith('valid-token');
+      (subscriptionRepo.removeByUnsubscribeToken as any).mockResolvedValue(true);
+
+      await expect(service.unsubscribe('valid-token')).resolves.toBeUndefined();
+      expect(subscriptionRepo.removeByUnsubscribeToken).toHaveBeenCalledWith('valid-token');
     });
 
     it('should throw a 404 error if the unsubscribe token is not found', async () => {
-      (subscriptionRepository.removeByUnsubscribeToken as any).mockResolvedValue(false);
+      const { subscriptionRepo, service } = createMocks();
 
-      await expect(unsubscribe('invalid-token')).rejects.toThrow(HttpError);
-      await expect(unsubscribe('invalid-token')).rejects.toThrow('Token not found');
+      (subscriptionRepo.removeByUnsubscribeToken as any).mockResolvedValue(false);
+
+      await expect(service.unsubscribe('invalid-token')).rejects.toThrow(HttpError);
+      await expect(service.unsubscribe('invalid-token')).rejects.toThrow('Token not found');
     });
   });
 
   describe('getSubscriptions()', () => {
     it('should return a formatted list of subscriptions for a given email', async () => {
+      const { subscriptionRepo, service } = createMocks();
+
       const mockEmail = 'test@example.com';
       const mockDbData = [
         {
@@ -131,11 +146,11 @@ describe('SubscriptionService', () => {
         },
       ];
 
-      (subscriptionRepository.findByEmail as any).mockResolvedValue(mockDbData);
+      (subscriptionRepo.findByEmail as any).mockResolvedValue(mockDbData);
 
-      const result = await getSubscriptions(mockEmail);
+      const result = await service.getSubscriptions(mockEmail);
 
-      expect(subscriptionRepository.findByEmail).toHaveBeenCalledWith(mockEmail);
+      expect(subscriptionRepo.findByEmail).toHaveBeenCalledWith(mockEmail);
       expect(result).toEqual([
         {
           email: mockEmail,

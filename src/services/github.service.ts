@@ -1,10 +1,7 @@
-import axios, { type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
-import { redis } from '../db/redis.js';
 import { HttpError } from '../errors/HttpError.js';
-
-const GITHUB_API = 'https://api.github.com';
-const CACHE_TTL = 600;
+import type { ICacheProvider, IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 
 export class GithubApiError extends HttpError {
   constructor(message: string, status: number) {
@@ -31,65 +28,64 @@ function buildHeaders(): Record<string, string> {
   return headers;
 }
 
-async function githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
-  const cacheKey = `github:${path}`;
+export class GithubService implements IGithubClient {
+  private httpClient: AxiosInstance;
 
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached !== null) {
-      console.log(`cache hit ${path}`);
-      return { data: JSON.parse(cached) } as AxiosResponse<T>;
-    }
-  } catch (error) {
-    console.warn(`redis failed to read cache for ${cacheKey}:`, error);
+  constructor(private readonly cache: ICacheProvider) {
+    this.httpClient = axios.create({ baseURL: config.GITHUB_API_URL, headers: buildHeaders() });
   }
 
-  try {
-    const response = await axios.get<T>(`${GITHUB_API}${path}`, { headers: buildHeaders() });
+  private async githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
+    const cacheKey = `github:${path}`;
 
-    await redis.set(cacheKey, JSON.stringify(response.data), { EX: CACHE_TTL }).catch(() => {});
+    try {
+      const cached = await this.cache.get(cacheKey);
+      if (cached !== null) {
+        console.log(`cache hit ${path}`);
+        return { data: JSON.parse(cached) } as AxiosResponse<T>;
+      }
+    } catch (error) {
+      console.warn(`redis failed to read cache for ${cacheKey}:`, error);
+    }
 
-    return response;
-  } catch (error: unknown) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
+    try {
+      const response = await this.httpClient.get<T>(path);
 
-      if (status === 404) {
-        throw new GithubApiError('Not found', 404);
+      await this.cache.set(cacheKey, JSON.stringify(response.data), config.GITHUB_CACHE_TTL).catch(() => {});
+
+      return response;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+
+        if (status === 404) {
+          throw new GithubApiError('Not found', 404);
+        }
+
+        if (status === 403 || status === 429) {
+          throw new GithubApiError('GitHub API rate limit exceeded', 503);
+        }
       }
 
-      if (status === 403 || status === 429) {
-        throw new GithubApiError('GitHub API rate limit exceeded', 503);
+      throw new GithubApiError(fallbackError, 500);
+    }
+  }
+
+  async validateRepository(owner: string, name: string): Promise<GithubRepoData> {
+    try {
+      await this.githubGet(`/repos/${owner}/${name}`, 'Failed to validate repository');
+      return { owner, name };
+    } catch (error) {
+      if (error instanceof GithubApiError && error.status === 404) {
+        throw new GithubApiError(`Repository ${owner}/${name} not found`, 404);
       }
+      throw error;
     }
-
-    throw new GithubApiError(fallbackError, 500);
   }
-}
 
-export async function validateRepository(owner: string, name: string): Promise<GithubRepoData> {
-  try {
-    await githubGet(`/repos/${owner}/${name}`, 'Failed to validate repository');
-    return { owner, name };
-  } catch (error) {
-    if (error instanceof GithubApiError && error.status === 404) {
-      throw new GithubApiError(`Repository ${owner}/${name} not found`, 404);
-    }
-    throw error;
-  }
-}
-
-export async function getLatestRelease(owner: string, name: string): Promise<string | null> {
-  const path = `/repos/${owner}/${name}/releases/latest`;
-
-  try {
-    const response = await githubGet<{ tag_name: string } | null>(path, 'Failed to fetch latest release');
-    return response.data?.tag_name ?? null;
-  } catch (error) {
-    if (error instanceof GithubApiError && error.status === 404) {
-      await redis.set(`github:${path}`, JSON.stringify(null), { EX: CACHE_TTL }).catch(() => {});
-      return null;
-    }
-    throw error;
+  async getLatestRelease(owner: string, name: string): Promise<string> {
+    const path = `/repos/${owner}/${name}/releases/latest`;
+    const response = await this.githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
+    return response.data.tag_name;
   }
 }

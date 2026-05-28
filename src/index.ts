@@ -5,18 +5,17 @@ import config from './config/env.js';
 import { startBoss, stopBoss } from './jobs/boss.js';
 import { registerScannerJob } from './jobs/scanner.job.js';
 import { registerEmailJob } from './jobs/email.job.js';
-import { initMailer } from './services/mailer.service.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
+import { boss, mailerService, scannerService } from './container.js';
 
 await prisma.$connect();
 console.log('DB connected');
 
 await connectRedis();
-await initMailer();
 
 await startBoss();
-await registerScannerJob();
-await registerEmailJob();
+await registerScannerJob(boss, scannerService);
+await registerEmailJob(boss, mailerService);
 
 const server = app.listen(config.PORT, () => {
   console.log(`Server running on port ${config.PORT}`);

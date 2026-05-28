@@ -7,17 +7,19 @@ const API_KEY = vi.hoisted(() => {
   return key;
 });
 
+vi.mock('../src/container.js', () => {
+  const subscriptionService = {
+    subscribe: vi.fn(),
+    confirmSubscription: vi.fn(),
+    unsubscribe: vi.fn(),
+    getSubscriptions: vi.fn(),
+  };
+  return { subscriptionService };
+});
+
 import app from '../src/app.js';
 import { HttpError } from '../src/errors/HttpError.js';
-
-vi.mock('../src/services/subscription.service.js', () => ({
-  subscribe: vi.fn(),
-  confirmSubscription: vi.fn(),
-  unsubscribe: vi.fn(),
-  getSubscriptions: vi.fn(),
-}));
-
-import * as subscriptionService from '../src/services/subscription.service.js';
+import { subscriptionService } from '../src/container.js';
 
 function authGet(path: string) {
   return request(app).get(path).set('X-API-Key', API_KEY);

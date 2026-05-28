@@ -1,56 +1,63 @@
-import { subscriptionRepository } from '../repositories/subscription.repository.js';
-import { validateRepository, getLatestRelease } from './github.service.js';
-import { enqueueConfirmationEmail } from '../jobs/email.job.js';
+import type { ISubscriptionRepository } from '../interfaces/repository.interfaces.js';
+import type { IGithubClient, IConfirmationEmailQueue } from '../interfaces/infrastructure.interfaces.js';
 import { HttpError } from '../errors/HttpError.js';
 
-export async function subscribe(email: string, repo: string) {
-  const [owner, name] = repo.split('/') as [string, string];
+export class SubscriptionService {
+  constructor(
+    private readonly subscriptionRepo: ISubscriptionRepository,
+    private readonly githubClient: IGithubClient,
+    private readonly jobQueue: IConfirmationEmailQueue,
+  ) {}
 
-  await validateRepository(owner, name);
+  async subscribe(email: string, repo: string) {
+    const [owner, name] = repo.split('/') as [string, string];
 
-  const latestTag = await getLatestRelease(owner, name).catch(() => null);
+    await this.githubClient.validateRepository(owner, name);
 
-  const { subscription, created } = await subscriptionRepository.createOrGet(
-    email,
-    owner,
-    name,
-    latestTag,
-  );
+    const latestTag = await this.githubClient.getLatestRelease(owner, name).catch(() => null);
 
-  if (!created && subscription.isConfirmed) {
-    throw new HttpError('Email is already subscribed to this repository', 409);
+    const { subscription, created } = await this.subscriptionRepo.createOrGet(
+      email,
+      owner,
+      name,
+      latestTag,
+    );
+
+    if (!created && subscription.isConfirmed) {
+      throw new HttpError('Email is already subscribed to this repository', 409);
+    }
+
+    await this.jobQueue.enqueueConfirmationEmail({ to: email, repo, confirmToken: subscription.confirmToken });
+
+    return subscription;
   }
 
-  await enqueueConfirmationEmail(email, repo, subscription.confirmToken);
+  async confirmSubscription(token: string) {
+    const subscription = await this.subscriptionRepo.confirmToken(token);
 
-  return subscription;
-}
+    if (!subscription) {
+      throw new HttpError('Token not found', 404);
+    }
 
-export async function confirmSubscription(token: string) {
-  const subscription = await subscriptionRepository.confirmToken(token);
-
-  if (!subscription) {
-    throw new HttpError('Token not found', 404);
+    return subscription;
   }
 
-  return subscription;
-}
+  async unsubscribe(token: string) {
+    const success = await this.subscriptionRepo.removeByUnsubscribeToken(token);
 
-export async function unsubscribe(token: string) {
-  const success = await subscriptionRepository.removeByUnsubscribeToken(token);
-
-  if (!success) {
-    throw new HttpError('Token not found', 404);
+    if (!success) {
+      throw new HttpError('Token not found', 404);
+    }
   }
-}
 
-export async function getSubscriptions(email: string) {
-  const subscriptions = await subscriptionRepository.findByEmail(email);
+  async getSubscriptions(email: string) {
+    const subscriptions = await this.subscriptionRepo.findByEmail(email);
 
-  return subscriptions.map((sub) => ({
-    email: sub.subscriber.email,
-    repo: `${sub.repository.owner}/${sub.repository.name}`,
-    confirmed: sub.isConfirmed,
-    last_seen_tag: sub.repository.lastSeenTag ?? '',
-  }));
+    return subscriptions.map((sub) => ({
+      email: sub.subscriber.email,
+      repo: `${sub.repository.owner}/${sub.repository.name}`,
+      confirmed: sub.isConfirmed,
+      last_seen_tag: sub.repository.lastSeenTag ?? '',
+    }));
+  }
 }

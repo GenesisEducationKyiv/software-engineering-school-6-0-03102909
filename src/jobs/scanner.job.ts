@@ -1,10 +1,10 @@
-import boss from './boss.js';
+import type { PgBoss } from 'pg-boss';
 import config from '../config/env.js';
-import { scannerService } from '../services/scanner.service.js';
+import type { ScannerService } from '../services/scanner.service.js';
 
 const QUEUE_NAME = 'release-scanner';
 
-export async function registerScannerJob(): Promise<void> {
+export async function registerScannerJob(boss: PgBoss, scannerService: ScannerService): Promise<void> {
   await boss.createQueue(QUEUE_NAME);
 
   await boss.schedule(QUEUE_NAME, config.SCAN_CRON, {});

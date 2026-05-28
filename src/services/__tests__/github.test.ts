@@ -1,21 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
+import { GithubService, GithubApiError } from '../github.service.js';
+import type { ICacheProvider } from '../../interfaces/infrastructure.interfaces.js';
 
-vi.mock('axios');
-
-vi.mock('../../db/redis.js', () => ({
-  redis: {
+vi.mock('axios', () => {
+  const mockAxiosInstance = {
     get: vi.fn(),
-    set: vi.fn(),
-  },
-}));
+  };
+  return {
+    default: {
+      create: vi.fn(() => mockAxiosInstance),
+      isAxiosError: vi.fn(),
+    },
+  };
+});
 
 vi.mock('../../config/env.js', () => ({
   default: { GITHUB_TOKEN: 'fake-github-token' },
 }));
 
-import { redis } from '../../db/redis.js';
-import { validateRepository, getLatestRelease, GithubApiError } from '../github.service.js';
+function createMocks() {
+  const cache: ICacheProvider = {
+    get: vi.fn(),
+    set: vi.fn(),
+  };
+
+  const service = new GithubService(cache);
+  const mockHttpClient = (axios.create as any).mock.results[0].value;
+
+  return { cache, service, mockHttpClient };
+}
 
 describe('GithubService', () => {
   beforeEach(() => {
@@ -26,48 +40,49 @@ describe('GithubService', () => {
 
   describe('validateRepository()', () => {
     it('should return owner and name if repository exists (Cache Miss)', async () => {
-      (redis.get as any).mockResolvedValue(null);
-      (axios.get as any).mockResolvedValue({ data: { id: 12345, full_name: 'owner/repo' } });
+      const { cache, service, mockHttpClient } = createMocks();
 
-      (redis.set as any).mockResolvedValue('OK');
+      (cache.get as any).mockResolvedValue(null);
+      mockHttpClient.get.mockResolvedValue({ data: { id: 12345, full_name: 'owner/repo' } });
 
-      const result = await validateRepository('owner', 'repo');
+      (cache.set as any).mockResolvedValue(undefined);
+
+      const result = await service.validateRepository('owner', 'repo');
 
       expect(result).toEqual({ owner: 'owner', name: 'repo' });
 
-      expect(axios.get).toHaveBeenCalledWith(
-        'https://api.github.com/repos/owner/repo',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer fake-github-token',
-          }),
-        }),
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        '/repos/owner/repo',
       );
 
-      expect(redis.set).toHaveBeenCalledTimes(1);
+      expect(cache.set).toHaveBeenCalledTimes(1);
     });
 
     it('should throw GithubApiError(404) if repository is not found', async () => {
-      (redis.get as any).mockResolvedValue(null);
+      const { cache, service, mockHttpClient } = createMocks();
+
+      (cache.get as any).mockResolvedValue(null);
 
       const notFoundError = {
         isAxiosError: true,
         response: { status: 404 },
       };
-      (axios.get as any).mockRejectedValue(notFoundError);
+      mockHttpClient.get.mockRejectedValue(notFoundError);
 
-      await expect(validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(GithubApiError);
-      await expect(validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
+      await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(GithubApiError);
+      await expect(service.validateRepository('bad-owner', 'bad-repo')).rejects.toThrow(
         'Repository bad-owner/bad-repo not found',
       );
     });
 
     it('should throw GithubApiError(503) on Rate Limit (403 or 429)', async () => {
-      (redis.get as any).mockResolvedValue(null);
-      const rateLimitError = { isAxiosError: true, response: { status: 403 } };
-      (axios.get as any).mockRejectedValue(rateLimitError);
+      const { cache, service, mockHttpClient } = createMocks();
 
-      await expect(validateRepository('owner', 'repo')).rejects.toThrow(
+      (cache.get as any).mockResolvedValue(null);
+      const rateLimitError = { isAxiosError: true, response: { status: 403 } };
+      mockHttpClient.get.mockRejectedValue(rateLimitError);
+
+      await expect(service.validateRepository('owner', 'repo')).rejects.toThrow(
         'GitHub API rate limit exceeded',
       );
     });
@@ -75,42 +90,42 @@ describe('GithubService', () => {
 
   describe('getLatestRelease()', () => {
     it('should return the latest tag name from GitHub API (Cache Miss)', async () => {
-      (redis.get as any).mockResolvedValue(null);
-      (axios.get as any).mockResolvedValue({ data: { tag_name: 'v2.0.0' } });
-      (redis.set as any).mockResolvedValue('OK');
+      const { cache, service, mockHttpClient } = createMocks();
 
-      const result = await getLatestRelease('owner', 'repo');
+      (cache.get as any).mockResolvedValue(null);
+      mockHttpClient.get.mockResolvedValue({ data: { tag_name: 'v2.0.0' } });
+      (cache.set as any).mockResolvedValue(undefined);
+
+      const result = await service.getLatestRelease('owner', 'repo');
 
       expect(result).toBe('v2.0.0');
-      expect(axios.get).toHaveBeenCalledTimes(1);
-      expect(redis.set).toHaveBeenCalledTimes(1);
+      expect(mockHttpClient.get).toHaveBeenCalledTimes(1);
+      expect(cache.set).toHaveBeenCalledTimes(1);
     });
 
-    it('should return the latest tag name from Redis (Cache Hit)', async () => {
-      const cachedData = JSON.stringify({ tag_name: 'v1.5.0' });
-      (redis.get as any).mockResolvedValue(cachedData);
+    it('should return the latest tag name from cache (Cache Hit)', async () => {
+      const { cache, service, mockHttpClient } = createMocks();
 
-      const result = await getLatestRelease('owner', 'repo');
+      const cachedData = JSON.stringify({ tag_name: 'v1.5.0' });
+      (cache.get as any).mockResolvedValue(cachedData);
+
+      const result = await service.getLatestRelease('owner', 'repo');
 
       expect(result).toBe('v1.5.0');
 
-      expect(axios.get).not.toHaveBeenCalled();
-      expect(redis.set).not.toHaveBeenCalled();
+      expect(mockHttpClient.get).not.toHaveBeenCalled();
+      expect(cache.set).not.toHaveBeenCalled();
     });
 
-    it('should return null and cache it if release is not found (404)', async () => {
-      (redis.get as any).mockResolvedValue(null);
+    it('should throw GithubApiError(404) if release is not found', async () => {
+      const { cache, service, mockHttpClient } = createMocks();
+
+      (cache.get as any).mockResolvedValue(null);
       const notFoundError = { isAxiosError: true, response: { status: 404 } };
-      (axios.get as any).mockRejectedValue(notFoundError);
-      (redis.set as any).mockResolvedValue('OK');
+      mockHttpClient.get.mockRejectedValue(notFoundError);
 
-      const result = await getLatestRelease('owner', 'repo');
-
-      expect(result).toBeNull();
-
-      expect(redis.set).toHaveBeenCalledWith('github:/repos/owner/repo/releases/latest', 'null', {
-        EX: 600,
-      });
+      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow(GithubApiError);
+      await expect(service.getLatestRelease('owner', 'repo')).rejects.toThrow('Not found');
     });
   });
 });
