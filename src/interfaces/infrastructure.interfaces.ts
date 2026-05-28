@@ -9,17 +9,6 @@ export interface ConfirmationEmailDto {
   confirmToken: string;
 }
 
-export interface ReleaseNotificationDto {
-  to: string;
-  repo: string;
-  tag: string;
-  unsubscribeToken: string;
-}
-
 export interface IConfirmationEmailQueue {
   enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void>;
-}
-
-export interface IReleaseNotificationQueue {
-  enqueueReleaseNotification(data: ReleaseNotificationDto): Promise<void>;
 }

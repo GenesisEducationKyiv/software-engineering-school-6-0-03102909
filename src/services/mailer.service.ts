@@ -1,5 +1,4 @@
 import type { Resend } from 'resend';
-import type { EmailPayload } from '../jobs/email.queue.js';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
 
 export class MailerService {
@@ -15,17 +14,6 @@ export class MailerService {
     });
     if (error) {
       throw new Error(`Resend API Error: ${error.message}`);
-    }
-  }
-
-  async processPayload(data: EmailPayload): Promise<void> {
-    switch (data.type) {
-      case 'confirmation':
-        return this.sendConfirmationEmail(data.to, data.repo, data.confirmToken);
-      case 'release':
-        return this.sendReleaseNotification(data.to, data.repo, data.tag, data.unsubscribeToken);
-      default:
-        console.error(`mailer unknown email type: ${(data as EmailPayload).type}`);
     }
   }
 

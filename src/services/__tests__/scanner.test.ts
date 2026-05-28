@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScannerService } from '../scanner.service.js';
 import { GithubApiError } from '../github.service.js';
-import type { IRepositoryRepository } from '../../interfaces/repository.interfaces.js';
+import type {
+  IRepositoryRepository,
+  ISubscriptionRepository,
+} from '../../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../../interfaces/infrastructure.interfaces.js';
-import type { NotificationService } from '../notification.service.js';
+import type { MailerService } from '../mailer.service.js';
 
 function createMocks() {
   const repositoryRepo: IRepositoryRepository = {
@@ -16,13 +19,22 @@ function createMocks() {
     getLatestRelease: vi.fn(),
   };
 
-  const notificationService = {
-    notifySubscribers: vi.fn(),
-  } as unknown as NotificationService;
+  const subscriptionRepo = {
+    findConfirmedSubscribersByRepo: vi.fn(),
+  } as unknown as ISubscriptionRepository;
 
-  const scannerService = new ScannerService(repositoryRepo, githubClient, notificationService);
+  const mailerService = {
+    sendReleaseNotification: vi.fn(),
+  } as unknown as MailerService;
 
-  return { repositoryRepo, githubClient, notificationService, scannerService };
+  const scannerService = new ScannerService(
+    repositoryRepo,
+    githubClient,
+    subscriptionRepo,
+    mailerService,
+  );
+
+  return { repositoryRepo, githubClient, subscriptionRepo, mailerService, scannerService };
 }
 
 describe('ScannerService', () => {
@@ -42,26 +54,31 @@ describe('ScannerService', () => {
   });
 
   it('should process new releases and notify subscribers', async () => {
-    const { repositoryRepo, githubClient, notificationService, scannerService } = createMocks();
+    const { repositoryRepo, githubClient, subscriptionRepo, mailerService, scannerService } =
+      createMocks();
 
     const mockRepos = [{ id: 1, owner: 'facebook', name: 'react', lastSeenTag: 'v18.0.0' }];
 
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
     (githubClient.getLatestRelease as any).mockResolvedValue('v18.2.0');
+    (subscriptionRepo.findConfirmedSubscribersByRepo as any).mockResolvedValue([
+      { subscriber: { email: 'user@test.com' }, unsubscribeToken: 'tok1' },
+    ]);
 
     await scannerService.scanAllRepositories();
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledWith('facebook', 'react');
-    expect(notificationService.notifySubscribers).toHaveBeenCalledWith(
-      1,
+    expect(mailerService.sendReleaseNotification).toHaveBeenCalledWith(
+      'user@test.com',
       'facebook/react',
       'v18.2.0',
+      'tok1',
     );
     expect(repositoryRepo.updateLastSeenTag).toHaveBeenCalledWith(1, 'v18.2.0');
   });
 
   it('should skip repository if there is no new release', async () => {
-    const { repositoryRepo, notificationService, githubClient, scannerService } = createMocks();
+    const { repositoryRepo, mailerService, githubClient, scannerService } = createMocks();
 
     const mockRepos = [{ id: 1, owner: 'facebook', name: 'react', lastSeenTag: 'v18.2.0' }];
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
@@ -69,7 +86,7 @@ describe('ScannerService', () => {
 
     await scannerService.scanAllRepositories();
 
-    expect(notificationService.notifySubscribers).not.toHaveBeenCalled();
+    expect(mailerService.sendReleaseNotification).not.toHaveBeenCalled();
     expect(repositoryRepo.updateLastSeenTag).not.toHaveBeenCalled();
   });
 
@@ -94,7 +111,8 @@ describe('ScannerService', () => {
   });
 
   it('should continue scanning other repos if a generic error occurs on one', async () => {
-    const { repositoryRepo, notificationService, githubClient, scannerService } = createMocks();
+    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService } =
+      createMocks();
 
     const mockRepos = [
       { id: 1, owner: 'bad', name: 'repo', lastSeenTag: 'v1.0' },
@@ -105,28 +123,43 @@ describe('ScannerService', () => {
     (githubClient.getLatestRelease as any)
       .mockRejectedValueOnce(new Error('Network offline'))
       .mockResolvedValueOnce('v2.0');
+    (subscriptionRepo.findConfirmedSubscribersByRepo as any).mockResolvedValue([
+      { subscriber: { email: 'user@test.com' }, unsubscribeToken: 'tok1' },
+    ]);
 
     await scannerService.scanAllRepositories();
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledTimes(2);
-    expect(notificationService.notifySubscribers).toHaveBeenCalledTimes(1);
+    expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining('scanner error scanning bad/repo'),
       expect.any(Error),
     );
   });
 
-  it('should still update tag even if notification throws', async () => {
-    const { repositoryRepo, notificationService, githubClient, scannerService } = createMocks();
+  it('should still update tag even if one notification fails', async () => {
+    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService } =
+      createMocks();
 
     const mockRepos = [{ id: 1, owner: 'test', name: 'repo', lastSeenTag: 'v1.0' }];
 
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
     (githubClient.getLatestRelease as any).mockResolvedValue('v2.0');
+    (subscriptionRepo.findConfirmedSubscribersByRepo as any).mockResolvedValue([
+      { subscriber: { email: 'fail@test.com' }, unsubscribeToken: 'tok1' },
+      { subscriber: { email: 'ok@test.com' }, unsubscribeToken: 'tok2' },
+    ]);
+    (mailerService.sendReleaseNotification as any)
+      .mockRejectedValueOnce(new Error('Resend down'))
+      .mockResolvedValueOnce(undefined);
 
     await scannerService.scanAllRepositories();
 
-    expect(notificationService.notifySubscribers).toHaveBeenCalledWith(1, 'test/repo', 'v2.0');
+    expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(2);
     expect(repositoryRepo.updateLastSeenTag).toHaveBeenCalledWith(1, 'v2.0');
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('fail@test.com'),
+      expect.any(Error),
+    );
   });
 });
