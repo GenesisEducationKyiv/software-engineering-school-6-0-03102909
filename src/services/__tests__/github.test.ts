@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { GithubService, GithubApiError, GithubNotFoundError, GithubRateLimitError } from '../github.service.js';
+import { GithubService, GithubNotFoundError } from '../github.service.js';
 
 vi.mock('axios', () => {
   const mockAxiosInstance = {
