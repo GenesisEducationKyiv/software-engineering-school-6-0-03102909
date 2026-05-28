@@ -44,9 +44,9 @@ describe('ScannerService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    _consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    _consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -99,9 +99,7 @@ describe('ScannerService', () => {
     ];
 
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
-    (githubClient.getLatestRelease as any).mockRejectedValueOnce(
-      new GithubRateLimitError(),
-    );
+    (githubClient.getLatestRelease as any).mockRejectedValueOnce(new GithubRateLimitError());
 
     await scannerService.scanAllRepositories();
 

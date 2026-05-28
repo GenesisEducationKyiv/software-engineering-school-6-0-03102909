@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
 import { AppError } from '../errors/AppError.js';
-import type { redis } from '../db/redis.js';
+
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 
 export class GithubApiError extends AppError {
@@ -46,31 +46,13 @@ function buildHeaders(): Record<string, string> {
 export class GithubService implements IGithubClient {
   private httpClient: AxiosInstance;
 
-  constructor(private readonly cache: typeof redis) {
+  constructor() {
     this.httpClient = axios.create({ baseURL: config.GITHUB_API_URL, headers: buildHeaders() });
   }
 
   private async githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
-    const cacheKey = `github:${path}`;
-
     try {
-      const cached = await this.cache.get(cacheKey);
-      if (cached !== null) {
-        console.log(`cache hit ${path}`);
-        return { data: JSON.parse(cached) } as AxiosResponse<T>;
-      }
-    } catch (error) {
-      console.warn(`redis failed to read cache for ${cacheKey}:`, error);
-    }
-
-    try {
-      const response = await this.httpClient.get<T>(path);
-
-      await this.cache
-        .set(cacheKey, JSON.stringify(response.data), { EX: config.GITHUB_CACHE_TTL })
-        .catch(() => {});
-
-      return response;
+      return await this.httpClient.get<T>(path);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
