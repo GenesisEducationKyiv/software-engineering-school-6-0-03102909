@@ -1,24 +1,33 @@
-import type { IMailTransport } from '../interfaces/infrastructure.interfaces.js';
-import type { EmailPayload } from '../jobs/email.queue.js';
+import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
+import { AppError } from '../errors/AppError.js';
+
+export class MailerError extends AppError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MailerError';
+  }
+}
 
 export class MailerService {
-  constructor(private readonly transport: IMailTransport) {}
+  constructor(private readonly resend: Resend) {}
 
-  async processPayload(data: EmailPayload): Promise<void> {
-    switch (data.type) {
-      case 'confirmation':
-        return this.sendConfirmationEmail(data.to, data.repo, data.confirmToken);
-      case 'release':
-        return this.sendReleaseNotification(data.to, data.repo, data.tag, data.unsubscribeToken);
-      default:
-        console.error(`mailer unknown email type: ${(data as EmailPayload).type}`);
+  private async sendMail(to: string, subject: string, html?: string, text?: string): Promise<void> {
+    const { error } = await this.resend.emails.send({
+      from: 'GitHub Notifier <noreply@githubnotifier.tech>',
+      to,
+      subject,
+      html: html ?? '',
+      text: text ?? '',
+    });
+    if (error) {
+      throw new MailerError(`Resend API Error: ${error.message}`);
     }
   }
 
   async sendConfirmationEmail(to: string, repo: string, confirmToken: string): Promise<void> {
     const { subject, html, text } = confirmationTemplate(repo, confirmToken);
-    await this.transport.sendMail(to, subject, html, text);
+    await this.sendMail(to, subject, html, text);
     console.log(`mailer confirmation email sent to ${to} for ${repo}`);
   }
 
@@ -29,7 +38,7 @@ export class MailerService {
     unsubscribeToken: string,
   ): Promise<void> {
     const { subject, html, text } = releaseNotificationTemplate(repo, tag, unsubscribeToken);
-    await this.transport.sendMail(to, subject, html, text);
+    await this.sendMail(to, subject, html, text);
     console.log(`mailer release notification sent to ${to} for ${repo}@${tag}`);
   }
 }

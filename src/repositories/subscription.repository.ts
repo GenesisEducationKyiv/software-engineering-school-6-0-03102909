@@ -4,12 +4,7 @@ import type { ISubscriptionRepository } from '../interfaces/repository.interface
 export class SubscriptionRepository implements ISubscriptionRepository {
   constructor(private db: PrismaClient) {}
 
-  async createOrGet(
-    email: string,
-    owner: string,
-    name: string,
-    latestTag: string | null = null
-  ) {
+  async createOrGet(email: string, owner: string, name: string, latestTag: string | null = null) {
     return await this.db.$transaction(async (tx) => {
       const repository = await tx.repository.upsert({
         where: { owner_name: { owner, name } },

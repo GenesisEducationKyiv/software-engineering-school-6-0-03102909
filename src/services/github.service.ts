@@ -1,12 +1,27 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import config from '../config/env.js';
-import { HttpError } from '../errors/HttpError.js';
-import type { ICacheProvider, IGithubClient } from '../interfaces/infrastructure.interfaces.js';
+import { AppError } from '../errors/AppError.js';
 
-export class GithubApiError extends HttpError {
-  constructor(message: string, status: number) {
-    super(message, status);
+import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
+
+export class GithubApiError extends AppError {
+  constructor(message: string) {
+    super(message);
     this.name = 'GithubApiError';
+  }
+}
+
+export class GithubNotFoundError extends GithubApiError {
+  constructor(message = 'Not found') {
+    super(message);
+    this.name = 'GithubNotFoundError';
+  }
+}
+
+export class GithubRateLimitError extends GithubApiError {
+  constructor(message = 'GitHub API rate limit exceeded') {
+    super(message);
+    this.name = 'GithubRateLimitError';
   }
 }
 
@@ -31,43 +46,27 @@ function buildHeaders(): Record<string, string> {
 export class GithubService implements IGithubClient {
   private httpClient: AxiosInstance;
 
-  constructor(private readonly cache: ICacheProvider) {
+  constructor() {
     this.httpClient = axios.create({ baseURL: config.GITHUB_API_URL, headers: buildHeaders() });
   }
 
   private async githubGet<T>(path: string, fallbackError: string): Promise<AxiosResponse<T>> {
-    const cacheKey = `github:${path}`;
-
     try {
-      const cached = await this.cache.get(cacheKey);
-      if (cached !== null) {
-        console.log(`cache hit ${path}`);
-        return { data: JSON.parse(cached) } as AxiosResponse<T>;
-      }
-    } catch (error) {
-      console.warn(`redis failed to read cache for ${cacheKey}:`, error);
-    }
-
-    try {
-      const response = await this.httpClient.get<T>(path);
-
-      await this.cache.set(cacheKey, JSON.stringify(response.data), config.GITHUB_CACHE_TTL).catch(() => {});
-
-      return response;
+      return await this.httpClient.get<T>(path);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
 
         if (status === 404) {
-          throw new GithubApiError('Not found', 404);
+          throw new GithubNotFoundError();
         }
 
         if (status === 403 || status === 429) {
-          throw new GithubApiError('GitHub API rate limit exceeded', 503);
+          throw new GithubRateLimitError();
         }
       }
 
-      throw new GithubApiError(fallbackError, 500);
+      throw new GithubApiError(fallbackError);
     }
   }
 
@@ -76,8 +75,8 @@ export class GithubService implements IGithubClient {
       await this.githubGet(`/repos/${owner}/${name}`, 'Failed to validate repository');
       return { owner, name };
     } catch (error) {
-      if (error instanceof GithubApiError && error.status === 404) {
-        throw new GithubApiError(`Repository ${owner}/${name} not found`, 404);
+      if (error instanceof GithubNotFoundError) {
+        throw new GithubNotFoundError(`Repository ${owner}/${name} not found`);
       }
       throw error;
     }
@@ -85,7 +84,10 @@ export class GithubService implements IGithubClient {
 
   async getLatestRelease(owner: string, name: string): Promise<string> {
     const path = `/repos/${owner}/${name}/releases/latest`;
-    const response = await this.githubGet<{ tag_name: string }>(path, 'Failed to fetch latest release');
+    const response = await this.githubGet<{ tag_name: string }>(
+      path,
+      'Failed to fetch latest release',
+    );
     return response.data.tag_name;
   }
 }

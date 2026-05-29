@@ -4,7 +4,10 @@ import type { ScannerService } from '../services/scanner.service.js';
 
 const QUEUE_NAME = 'release-scanner';
 
-export async function registerScannerJob(boss: PgBoss, scannerService: ScannerService): Promise<void> {
+export async function registerScannerJob(
+  boss: PgBoss,
+  scannerService: ScannerService,
+): Promise<void> {
   await boss.createQueue(QUEUE_NAME);
 
   await boss.schedule(QUEUE_NAME, config.SCAN_CRON, {});

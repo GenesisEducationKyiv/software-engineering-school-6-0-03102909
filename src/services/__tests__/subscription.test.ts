@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpError } from '../../errors/HttpError.js';
 import { SubscriptionService } from '../subscription.service.js';
 import type { ISubscriptionRepository } from '../../interfaces/repository.interfaces.js';
-import type { IGithubClient, IConfirmationEmailQueue } from '../../interfaces/infrastructure.interfaces.js';
+import type {
+  IGithubClient,
+  IConfirmationEmailQueue,
+} from '../../interfaces/infrastructure.interfaces.js';
 
 function createMocks() {
   const subscriptionRepo: ISubscriptionRepository = {
@@ -52,8 +55,17 @@ describe('SubscriptionService', () => {
       expect(result).toEqual(mockSubscription);
       expect(githubClient.validateRepository).toHaveBeenCalledWith('owner', 'repo');
       expect(githubClient.getLatestRelease).toHaveBeenCalledWith('owner', 'repo');
-      expect(subscriptionRepo.createOrGet).toHaveBeenCalledWith(mockEmail, 'owner', 'repo', 'v1.0.0');
-      expect(jobQueue.enqueueConfirmationEmail).toHaveBeenCalledWith({ to: mockEmail, repo: mockRepo, confirmToken: 'fake-token' });
+      expect(subscriptionRepo.createOrGet).toHaveBeenCalledWith(
+        mockEmail,
+        'owner',
+        'repo',
+        'v1.0.0',
+      );
+      expect(jobQueue.enqueueConfirmationEmail).toHaveBeenCalledWith({
+        to: mockEmail,
+        repo: mockRepo,
+        confirmToken: 'fake-token',
+      });
     });
 
     it('should throw a 409 conflict error if user is already subscribed and confirmed', async () => {

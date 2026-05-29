@@ -2,212 +2,188 @@ import swaggerUi from 'swagger-ui-express';
 import type { Express } from 'express';
 
 const swaggerDocument = {
-  swagger: "2.0",
+  swagger: '2.0',
   info: {
-    description: "GitHub Release Notification API that allows users to subscribe to email notifications about new releases of a chosen GitHub repository.",
-    version: "1.0.0",
-    title: "GitHub Release Notification API"
+    description:
+      'GitHub Release Notification API that allows users to subscribe to email notifications about new releases of a chosen GitHub repository.',
+    version: '1.0.0',
+    title: 'GitHub Release Notification API',
   },
-  basePath: "/api",
+  basePath: '/api',
   tags: [
     {
-      name: "subscription",
-      description: "Subscription management operations"
-    }
+      name: 'subscription',
+      description: 'Subscription management operations',
+    },
   ],
-  schemes: [
-    "http",
-    "https"
-  ],
+  schemes: ['http', 'https'],
   paths: {
-    "/subscribe": {
+    '/subscribe': {
       post: {
-        tags: [
-          "subscription"
-        ],
-        summary: "Subscribe to release notifications",
-        description: "Subscribe an email to receive notifications about new releases of a GitHub repository. The repository is validated via GitHub API.",
-        operationId: "subscribe",
-        consumes: [
-          "application/json"
-        ],
-        produces: [
-          "application/json"
-        ],
+        tags: ['subscription'],
+        summary: 'Subscribe to release notifications',
+        description:
+          'Subscribe an email to receive notifications about new releases of a GitHub repository. The repository is validated via GitHub API.',
+        operationId: 'subscribe',
+        consumes: ['application/json'],
+        produces: ['application/json'],
         parameters: [
           {
-            in: "body",
-            name: "body",
-            description: "Subscription request",
+            in: 'body',
+            name: 'body',
+            description: 'Subscription request',
             required: true,
             schema: {
-              $ref: "#/definitions/SubscribeRequest"
-            }
-          }
+              $ref: '#/definitions/SubscribeRequest',
+            },
+          },
         ],
         responses: {
-          "200": {
-            description: "Subscription successful. Confirmation email sent."
+          '200': {
+            description: 'Subscription successful. Confirmation email sent.',
           },
-          "400": {
-            description: "Invalid input (e.g., invalid repo format)"
+          '400': {
+            description: 'Invalid input (e.g., invalid repo format)',
           },
-          "404": {
-            description: "Repository not found on GitHub"
+          '404': {
+            description: 'Repository not found on GitHub',
           },
-          "409": {
-            description: "Email already subscribed to this repository"
-          }
-        }
-      }
+          '409': {
+            description: 'Email already subscribed to this repository',
+          },
+        },
+      },
     },
-    "/confirm/{token}": {
+    '/confirm/{token}': {
       get: {
-        tags: [
-          "subscription"
-        ],
-        summary: "Confirm email subscription",
-        description: "Confirms a subscription using the token sent in the confirmation email.",
-        operationId: "confirmSubscription",
+        tags: ['subscription'],
+        summary: 'Confirm email subscription',
+        description: 'Confirms a subscription using the token sent in the confirmation email.',
+        operationId: 'confirmSubscription',
         parameters: [
           {
-            name: "token",
-            in: "path",
-            description: "Confirmation token",
+            name: 'token',
+            in: 'path',
+            description: 'Confirmation token',
             required: true,
-            type: "string"
-          }
+            type: 'string',
+          },
         ],
-        produces: [
-          "application/json"
-        ],
+        produces: ['application/json'],
         responses: {
-          "200": {
-            description: "Subscription confirmed successfully"
+          '200': {
+            description: 'Subscription confirmed successfully',
           },
-          "400": {
-            description: "Invalid token"
+          '400': {
+            description: 'Invalid token',
           },
-          "404": {
-            description: "Token not found"
-          }
-        }
-      }
+          '404': {
+            description: 'Token not found',
+          },
+        },
+      },
     },
-    "/unsubscribe/{token}": {
+    '/unsubscribe/{token}': {
       get: {
-        tags: [
-          "subscription"
-        ],
-        summary: "Unsubscribe from release notifications",
-        description: "Unsubscribes an email from release notifications using the token sent in emails.",
-        operationId: "unsubscribe",
+        tags: ['subscription'],
+        summary: 'Unsubscribe from release notifications',
+        description:
+          'Unsubscribes an email from release notifications using the token sent in emails.',
+        operationId: 'unsubscribe',
         parameters: [
           {
-            name: "token",
-            in: "path",
-            description: "Unsubscribe token",
+            name: 'token',
+            in: 'path',
+            description: 'Unsubscribe token',
             required: true,
-            type: "string"
-          }
+            type: 'string',
+          },
         ],
-        produces: [
-          "application/json"
-        ],
+        produces: ['application/json'],
         responses: {
-          "200": {
-            description: "Unsubscribed successfully"
+          '200': {
+            description: 'Unsubscribed successfully',
           },
-          "400": {
-            description: "Invalid token"
+          '400': {
+            description: 'Invalid token',
           },
-          "404": {
-            description: "Token not found"
-          }
-        }
-      }
+          '404': {
+            description: 'Token not found',
+          },
+        },
+      },
     },
-    "/subscriptions": {
+    '/subscriptions': {
       get: {
-        tags: [
-          "subscription"
-        ],
-        summary: "Get subscriptions for an email",
-        description: "Returns all active subscriptions for the given email address.",
-        operationId: "getSubscriptions",
+        tags: ['subscription'],
+        summary: 'Get subscriptions for an email',
+        description: 'Returns all active subscriptions for the given email address.',
+        operationId: 'getSubscriptions',
         parameters: [
           {
-            name: "email",
-            in: "query",
-            description: "Email address to look up subscriptions for",
+            name: 'email',
+            in: 'query',
+            description: 'Email address to look up subscriptions for',
             required: true,
-            type: "string"
-          }
+            type: 'string',
+          },
         ],
-        produces: [
-          "application/json"
-        ],
+        produces: ['application/json'],
         responses: {
-          "200": {
-            description: "Successful operation - list of subscriptions returned",
+          '200': {
+            description: 'Successful operation - list of subscriptions returned',
             schema: {
-              type: "array",
+              type: 'array',
               items: {
-                $ref: "#/definitions/Subscription"
-              }
-            }
+                $ref: '#/definitions/Subscription',
+              },
+            },
           },
-          "400": {
-            description: "Invalid email"
-          }
-        }
-      }
-    }
+          '400': {
+            description: 'Invalid email',
+          },
+        },
+      },
+    },
   },
   definitions: {
     SubscribeRequest: {
-      type: "object",
-      required: [
-        "email",
-        "repo"
-      ],
+      type: 'object',
+      required: ['email', 'repo'],
       properties: {
         email: {
-          type: "string",
-          description: "Email address to subscribe"
+          type: 'string',
+          description: 'Email address to subscribe',
         },
         repo: {
-          type: "string",
-          description: "GitHub repository in owner/repo format (e.g., golang/go)"
-        }
-      }
+          type: 'string',
+          description: 'GitHub repository in owner/repo format (e.g., golang/go)',
+        },
+      },
     },
     Subscription: {
-      type: "object",
-      required: [
-        "email",
-        "repo"
-      ],
+      type: 'object',
+      required: ['email', 'repo'],
       properties: {
         email: {
-          type: "string",
-          description: "Email address"
+          type: 'string',
+          description: 'Email address',
         },
         repo: {
-          type: "string",
-          description: "GitHub repository in owner/repo format"
+          type: 'string',
+          description: 'GitHub repository in owner/repo format',
         },
         confirmed: {
-          type: "boolean",
-          description: "Whether the subscription is confirmed"
+          type: 'boolean',
+          description: 'Whether the subscription is confirmed',
         },
         last_seen_tag: {
-          type: "string",
-          description: "Last seen release tag for this repository"
-        }
-      }
-    }
-  }
+          type: 'string',
+          description: 'Last seen release tag for this repository',
+        },
+      },
+    },
+  },
 };
 
 export const setupSwagger = (app: Express): void => {
