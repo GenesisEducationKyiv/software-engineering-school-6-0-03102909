@@ -11,6 +11,13 @@ export const httpRequestsTotal = new Counter({
   registers: [registry],
 });
 
+export const httpErrorsTotal = new Counter({
+  name: 'http_errors_total',
+  help: 'Total number of HTTP error responses (4xx and 5xx)',
+  labelNames: ['method', 'route', 'status'],
+  registers: [registry],
+});
+
 export const httpRequestDuration = new Histogram({
   name: 'http_request_duration_seconds',
   help: 'HTTP request duration in seconds',
