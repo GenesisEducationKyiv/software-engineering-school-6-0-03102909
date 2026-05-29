@@ -2,6 +2,9 @@ import type { Request, Response, NextFunction } from 'express';
 import { HttpError } from '../errors/HttpError.js';
 import { AppError } from '../errors/AppError.js';
 import { GithubNotFoundError, GithubRateLimitError } from '../services/github.service.js';
+import { logger } from '../di/infrastructure.js';
+
+const log = logger.child({ module: 'http' });
 
 export const errorHandler = (
   err: Error,
@@ -25,7 +28,8 @@ export const errorHandler = (
     res.status(400).json({ error: err.message });
     return;
   }
-  console.error(err);
+  
+  log.error({ err }, 'Unhandled internal server error');
   res.status(500).json({ error: 'Internal server error' });
 };
 

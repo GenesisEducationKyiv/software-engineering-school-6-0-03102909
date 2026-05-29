@@ -7,6 +7,7 @@ import type {
 } from '../../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../../interfaces/infrastructure.interfaces.js';
 import type { MailerService } from '../mailer.service.js';
+import type { ILogger } from '../../config/logger.js';
 
 function createMocks() {
   const repositoryRepo: IRepositoryRepository = {
@@ -27,14 +28,23 @@ function createMocks() {
     sendReleaseNotification: vi.fn(),
   } as unknown as MailerService;
 
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  } as unknown as ILogger;
+
   const scannerService = new ScannerService(
     repositoryRepo,
     githubClient,
     subscriptionRepo,
     mailerService,
+    mockLogger
   );
 
-  return { repositoryRepo, githubClient, subscriptionRepo, mailerService, scannerService };
+  return { repositoryRepo, githubClient, subscriptionRepo, mailerService, scannerService, mockLogger };
 }
 
 describe('ScannerService', () => {
@@ -91,7 +101,7 @@ describe('ScannerService', () => {
   });
 
   it('should stop scanning remaining repos if GitHub rate limit (503) is hit', async () => {
-    const { repositoryRepo, githubClient, scannerService } = createMocks();
+    const { repositoryRepo, githubClient, scannerService, mockLogger } = createMocks();
 
     const mockRepos = [
       { id: 1, owner: 'facebook', name: 'react', lastSeenTag: 'v18.0.0' },
@@ -105,11 +115,11 @@ describe('ScannerService', () => {
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledTimes(1);
     expect(githubClient.getLatestRelease).toHaveBeenCalledWith('facebook', 'react');
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('rate-limited'));
+    expect(mockLogger.warn).toHaveBeenCalledWith('github rate limit exceeded, skipping remaining repositories');
   });
 
   it('should continue scanning other repos if a generic error occurs on one', async () => {
-    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService } =
+    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService, mockLogger } =
       createMocks();
 
     const mockRepos = [
@@ -129,14 +139,14 @@ describe('ScannerService', () => {
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledTimes(2);
     expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('scanner error scanning bad/repo'),
-      expect.any(Error),
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      { err: expect.any(Error), repo: 'bad/repo' },
+      'error scanning repository'
     );
   });
 
   it('should still update tag even if one notification fails', async () => {
-    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService } =
+    const { repositoryRepo, subscriptionRepo, mailerService, githubClient, scannerService, mockLogger } =
       createMocks();
 
     const mockRepos = [{ id: 1, owner: 'test', name: 'repo', lastSeenTag: 'v1.0' }];
@@ -155,9 +165,9 @@ describe('ScannerService', () => {
 
     expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(2);
     expect(repositoryRepo.updateLastSeenTag).toHaveBeenCalledWith(1, 'v2.0');
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('fail@test.com'),
-      expect.any(Error),
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      { err: expect.any(Error), repo: 'test/repo', subscriberEmail: 'fail@test.com' },
+      'failed to send release notification'
     );
   });
 });
