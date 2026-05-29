@@ -22,9 +22,9 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "format": "prettier --write src"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
