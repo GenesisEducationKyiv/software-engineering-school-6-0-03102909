@@ -11,10 +11,8 @@ let appProcess: ChildProcess;
 async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return;
-    } catch {}
+    const res = await fetch(url).catch(() => null);
+    if (res?.ok) return;
     await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error(`Server at ${url} did not start within ${timeoutMs}ms`);
@@ -79,6 +77,7 @@ export async function globalTeardown() {
   if (appProcess?.pid) {
     try {
       process.kill(-appProcess.pid, 'SIGKILL');
+      // eslint-disable-next-line no-empty
     } catch {}
   }
   if (wiremockContainer) await wiremockContainer.stop();
