@@ -1,8 +1,8 @@
-import { createClient } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import config from '../config/env.js';
 import { logger } from '../di/logger.js';
 
-export const redis = createClient({ url: config.REDIS_URL });
+export const redis = createClient({ url: config.REDIS_URL }) as unknown as RedisClientType;
 
 const log = logger.child({ module: 'redis' });
 redis.on('error', (err) => log.error({ err }, 'redis connection error'));

@@ -1,14 +1,14 @@
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
 import type { Logger } from '../config/logger.js';
 import type { GithubRepoData } from './github.service.js';
-import type { redis } from '../db/redis.js';
+import type { RedisClientType } from 'redis';
 import config from '../config/env.js';
 
 export class CachedGithubClient implements IGithubClient {
   private readonly log: Logger;
 
   constructor(
-    private readonly cache: typeof redis,
+    private readonly cache: RedisClientType,
     private readonly githubClient: IGithubClient,
     logger: Logger
   ) {
