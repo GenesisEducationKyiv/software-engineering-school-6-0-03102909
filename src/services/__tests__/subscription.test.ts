@@ -6,7 +6,7 @@ import type {
   IGithubClient,
   IConfirmationEmailQueue,
 } from '../../interfaces/infrastructure.interfaces.js';
-import type { ILogger } from '../../config/logger.js';
+import type { Logger } from '../../config/logger.js';
 
 function createMocks() {
   const subscriptionRepo: ISubscriptionRepository = {
@@ -32,7 +32,7 @@ function createMocks() {
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
-  } as unknown as ILogger;
+  } as unknown as Logger;
 
   const service = new SubscriptionService(subscriptionRepo, githubClient, jobQueue, mockLogger);
 

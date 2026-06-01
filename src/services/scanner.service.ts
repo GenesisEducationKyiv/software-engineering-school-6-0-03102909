@@ -3,19 +3,19 @@ import type {
   ISubscriptionRepository,
 } from '../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../interfaces/infrastructure.interfaces.js';
-import type { ILogger } from '../config/logger.js';
+import type { Logger } from '../config/logger.js';
 import type { MailerService } from './mailer.service.js';
 import { GithubNotFoundError, GithubRateLimitError } from './github.service.js';
 
 export class ScannerService {
-  private readonly log: ILogger;
+  private readonly log: Logger;
 
   constructor(
     private readonly repositoryRepo: IRepositoryRepository,
     private readonly githubClient: IGithubClient,
     private readonly subscriptionRepo: ISubscriptionRepository,
     private readonly mailerService: MailerService,
-    logger: ILogger
+    logger: Logger
   ) {
     this.log = logger.child({ module: 'ScannerService' });
   }

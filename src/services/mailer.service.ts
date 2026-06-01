@@ -1,7 +1,7 @@
 import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
 import { AppError } from '../errors/AppError.js';
-import type { ILogger } from '../config/logger.js';
+import type { Logger } from '../config/logger.js';
 
 export class MailerError extends AppError {
   constructor(message: string) {
@@ -11,9 +11,9 @@ export class MailerError extends AppError {
 }
 
 export class MailerService {
-  private readonly log: ILogger;
+  private readonly log: Logger;
 
-  constructor(private readonly resend: Resend, logger: ILogger) {
+  constructor(private readonly resend: Resend, logger: Logger) {
     this.log = logger.child({ service: 'MailerService' });
   }
 

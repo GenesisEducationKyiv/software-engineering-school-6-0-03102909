@@ -7,7 +7,7 @@ import type {
 } from '../../interfaces/repository.interfaces.js';
 import type { IGithubClient } from '../../interfaces/infrastructure.interfaces.js';
 import type { MailerService } from '../mailer.service.js';
-import type { ILogger } from '../../config/logger.js';
+import type { Logger } from '../../config/logger.js';
 
 function createMocks() {
   const repositoryRepo: IRepositoryRepository = {
@@ -34,7 +34,7 @@ function createMocks() {
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
-  } as unknown as ILogger;
+  } as unknown as Logger;
 
   const scannerService = new ScannerService(
     repositoryRepo,

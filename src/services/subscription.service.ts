@@ -3,17 +3,17 @@ import type {
   IGithubClient,
   IConfirmationEmailQueue,
 } from '../interfaces/infrastructure.interfaces.js';
-import type { ILogger } from '../config/logger.js';
+import type { Logger } from '../config/logger.js';
 import { HttpError } from '../errors/HttpError.js';
 
 export class SubscriptionService {
-  private readonly log: ILogger;
+  private readonly log: Logger;
 
   constructor(
     private readonly subscriptionRepo: ISubscriptionRepository,
     private readonly githubClient: IGithubClient,
     private readonly jobQueue: IConfirmationEmailQueue,
-    logger: ILogger,
+    logger: Logger,
   ) {
     this.log = logger.child({ service: 'SubscriptionService' });
   }

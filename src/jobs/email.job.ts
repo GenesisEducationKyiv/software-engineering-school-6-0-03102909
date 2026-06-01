@@ -2,12 +2,12 @@ import type { PgBoss } from 'pg-boss';
 import type { MailerService } from '../services/mailer.service.js';
 import { QUEUE_NAME } from './email.queue.js';
 import type { ConfirmationEmailDto } from '../interfaces/infrastructure.interfaces.js';
-import type { ILogger } from '../config/logger.js';
+import type { Logger } from '../config/logger.js';
 
 export async function registerEmailJob(
   boss: PgBoss,
   mailer: MailerService,
-  logger: ILogger
+  logger: Logger
 ): Promise<void> {
   const log = logger.child({ module: 'email-job' });
 
