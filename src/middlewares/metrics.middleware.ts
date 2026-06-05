@@ -9,7 +9,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   const end = httpRequestDuration.startTimer();
 
   res.on('finish', () => {
-    const route = req.route?.path ?? 'unmatched';
+    const route = req.route ? `${req.baseUrl}${req.route.path}` : 'unmatched';
     const labels = { method: req.method, route, status: res.statusCode.toString() };
     httpRequestsTotal.inc(labels);
     end(labels);
