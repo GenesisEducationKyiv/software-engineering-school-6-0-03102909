@@ -101,12 +101,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{route!~\"/favicon.ico|/metrics\"}[1m])) or vector(0)",
+          "expr": "sum(rate(http_requests_total[1m])) or vector(0)",
           "legendFormat": "Total",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(http_requests_total{route!~\"/favicon.ico|/metrics\"}[1m])) by (route)",
+          "expr": "sum(rate(http_requests_total[1m])) by (route)",
           "legendFormat": "{{ route }}",
           "refId": "B"
         }
@@ -196,12 +196,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_errors_total{route!~\"/favicon.ico|/metrics\"}[1m])) or vector(0)",
+          "expr": "sum(rate(http_errors_total[1m])) or vector(0)",
           "legendFormat": "Total Errors",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(http_errors_total{route!~\"/favicon.ico|/metrics\"}[1m])) by (route)",
+          "expr": "sum(rate(http_errors_total[1m])) by (route)",
           "legendFormat": "{{ route }}",
           "refId": "B"
         }
@@ -290,7 +290,7 @@
       "pluginVersion": "11.1.0",
       "targets": [
         {
-          "expr": "sum(rate(http_errors_total{route!~\"/favicon.ico|/metrics\", status=~\"4..\"}[5m])) / sum(rate(http_requests_total{route!~\"/favicon.ico|/metrics\"}[5m])) * 100",
+          "expr": "sum(rate(http_errors_total{status=~\"4..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
           "legendFormat": "",
           "refId": "A"
         }
@@ -379,7 +379,7 @@
       "pluginVersion": "11.1.0",
       "targets": [
         {
-          "expr": "sum(rate(http_errors_total{route!~\"/favicon.ico|/metrics\", status=~\"5..\"}[5m])) / sum(rate(http_requests_total{route!~\"/favicon.ico|/metrics\"}[5m])) * 100",
+          "expr": "sum(rate(http_errors_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
           "legendFormat": "",
           "refId": "A"
         }
@@ -466,7 +466,7 @@
       "pluginVersion": "11.1.0",
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_sum{route!~\"/favicon.ico|/metrics\"}[5m])) / sum(rate(http_request_duration_seconds_count{route!~\"/favicon.ico|/metrics\"}[5m]))",
+          "expr": "sum(rate(http_request_duration_seconds_sum[5m])) / sum(rate(http_request_duration_seconds_count[5m]))",
           "legendFormat": "",
           "refId": "A"
         }
@@ -555,17 +555,17 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{route!~\"/favicon.ico|/metrics\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{route!~\"/favicon.ico|/metrics\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{route!~\"/favicon.ico|/metrics\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }

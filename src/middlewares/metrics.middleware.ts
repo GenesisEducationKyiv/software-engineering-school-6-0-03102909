@@ -2,6 +2,10 @@ import type { Request, Response, NextFunction } from 'express';
 import { httpRequestsTotal, httpRequestDuration, httpErrorsTotal } from '../metrics.js';
 
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!req.path.startsWith('/api')) {
+    return next();
+  }
+
   const end = httpRequestDuration.startTimer();
 
   res.on('finish', () => {
