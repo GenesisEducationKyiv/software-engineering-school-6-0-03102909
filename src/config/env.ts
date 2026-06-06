@@ -10,9 +10,7 @@ export default {
   GITHUB_CACHE_TTL: Number(process.env['GITHUB_CACHE_TTL']) || 600,
   API_KEY: process.env['API_KEY'] ?? '',
   REDIS_URL: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
-  // SMTP_USER: process.env['SMTP_USER'] ?? '',
-  // SMTP_PASS: process.env['SMTP_PASS'] ?? '',
-  // SMTP_FROM: process.env['SMTP_FROM'] ?? '',
   RESEND_API_KEY: process.env['RESEND_API_KEY'] ?? '',
   SCAN_CRON: process.env['SCAN_CRON'] ?? '*/5 * * * *',
+  LOG_LEVEL: process.env['LOG_LEVEL'] ?? 'info',
 };

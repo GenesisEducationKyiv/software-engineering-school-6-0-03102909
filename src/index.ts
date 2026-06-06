@@ -7,22 +7,25 @@ import { registerScannerJob } from './jobs/scanner.job.js';
 import { registerEmailJob } from './jobs/email.job.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
 import { boss, mailerService, scannerService } from './container.js';
+import { logger } from './di/infrastructure.js';
+
+const log = logger.child({ module: 'startup' });
 
 await prisma.$connect();
-console.log('DB connected');
+log.info('database connected');
 
 await connectRedis();
 
 await startBoss();
-await registerScannerJob(boss, scannerService);
-await registerEmailJob(boss, mailerService);
+await registerScannerJob(boss, scannerService, logger);
+await registerEmailJob(boss, mailerService, logger);
 
 const server = app.listen(config.PORT, () => {
-  console.log(`Server running on port ${config.PORT}`);
+  log.info({ port: config.PORT }, 'server running');
 });
 
 const shutdown = async () => {
-  console.log('Shutting down…');
+  log.info('shutting down');
   server.close();
   await stopBoss();
   await disconnectRedis();

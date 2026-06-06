@@ -5,12 +5,22 @@ import { registry } from './metrics.js';
 import { metricsMiddleware } from './middlewares/metrics.middleware.js';
 import path from 'path';
 import { setupSwagger } from './docs/swagger.js';
+import { pinoHttp } from 'pino-http';
+import { logger } from './di/infrastructure.js';
 
 const app = express();
 
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.use(express.json());
+app.use(
+  pinoHttp({
+    logger,
+    autoLogging: {
+      ignore: (req: import('http').IncomingMessage) => req.url === '/metrics',
+    },
+  })
+);
 app.use(metricsMiddleware);
 
 setupSwagger(app);

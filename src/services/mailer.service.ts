@@ -1,6 +1,7 @@
 import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
 import { AppError } from '../errors/AppError.js';
+import type { Logger } from '../config/logger.js';
 
 export class MailerError extends AppError {
   constructor(message: string) {
@@ -10,7 +11,11 @@ export class MailerError extends AppError {
 }
 
 export class MailerService {
-  constructor(private readonly resend: Resend) {}
+  private readonly log: Logger;
+
+  constructor(private readonly resend: Resend, logger: Logger) {
+    this.log = logger.child({ service: 'MailerService' });
+  }
 
   private async sendMail(to: string, subject: string, html?: string, text?: string): Promise<void> {
     const { error } = await this.resend.emails.send({
@@ -28,7 +33,7 @@ export class MailerService {
   async sendConfirmationEmail(to: string, repo: string, confirmToken: string): Promise<void> {
     const { subject, html, text } = confirmationTemplate(repo, confirmToken);
     await this.sendMail(to, subject, html, text);
-    console.log(`mailer confirmation email sent to ${to} for ${repo}`);
+    this.log.info({ to, repo }, 'confirmation email sent');
   }
 
   async sendReleaseNotification(
@@ -39,6 +44,6 @@ export class MailerService {
   ): Promise<void> {
     const { subject, html, text } = releaseNotificationTemplate(repo, tag, unsubscribeToken);
     await this.sendMail(to, subject, html, text);
-    console.log(`mailer release notification sent to ${to} for ${repo}@${tag}`);
+    this.log.info({ to, repo, tag }, 'release notification sent');
   }
 }

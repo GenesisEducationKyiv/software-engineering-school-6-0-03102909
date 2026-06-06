@@ -6,6 +6,7 @@ import type {
   IGithubClient,
   IConfirmationEmailQueue,
 } from '../../interfaces/infrastructure.interfaces.js';
+import type { Logger } from '../../config/logger.js';
 
 function createMocks() {
   const subscriptionRepo: ISubscriptionRepository = {
@@ -25,9 +26,17 @@ function createMocks() {
     enqueueConfirmationEmail: vi.fn(),
   };
 
-  const service = new SubscriptionService(subscriptionRepo, githubClient, jobQueue);
+  const mockLogger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  } as unknown as Logger;
 
-  return { subscriptionRepo, githubClient, jobQueue, service };
+  const service = new SubscriptionService(subscriptionRepo, githubClient, jobQueue, mockLogger);
+
+  return { subscriptionRepo, githubClient, jobQueue, service, mockLogger };
 }
 
 describe('SubscriptionService', () => {
