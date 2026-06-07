@@ -1,8 +1,8 @@
 import express from 'express';
-import { errorHandler, unknownEndpoint } from './middlewares/errorHandler.js';
-import subscriptionRoutes from './api/routes/subscription.routes.js';
+import { errorHandler, unknownEndpoint } from './shared/middlewares/errorHandler.js';
+import subscriptionRoutes from './modules/subscription/api/subscription.routes.js';
 import { registry } from './metrics.js';
-import { metricsMiddleware } from './middlewares/metrics.middleware.js';
+import { metricsMiddleware } from './shared/middlewares/metrics.middleware.js';
 import path from 'path';
 import { setupSwagger } from './docs/swagger.js';
 import { pinoHttp } from 'pino-http';
