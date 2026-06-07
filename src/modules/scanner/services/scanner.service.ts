@@ -1,9 +1,9 @@
 import type { IRepositoryRepository } from '../interfaces.js';
-import type { ISubscriptionRepository } from '../../subscription/interfaces.js';
-import type { IGithubClient } from '../../../shared/github/github.interfaces.js';
+import type { ISubscriptionRepository } from '../../subscription/index.js';
+import type { IGithubClient } from '../../../shared/github/index.js';
 import type { Logger } from '../../../config/logger.js';
-import type { MailerService } from '../../notification/services/mailer.service.js';
-import { GithubNotFoundError, GithubRateLimitError } from '../../../shared/github/github.service.js';
+import type { MailerService } from '../../notification/index.js';
+import { GithubNotFoundError, GithubRateLimitError } from '../../../shared/github/index.js';
 
 export class ScannerService {
   private readonly log: Logger;

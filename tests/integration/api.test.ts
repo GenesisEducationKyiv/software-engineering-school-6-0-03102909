@@ -14,7 +14,7 @@ vi.mock('../../src/db/redis.js', () => ({
   disconnectRedis: vi.fn(),
 }));
 
-vi.mock('../../src/jobs/boss.js', () => ({
+vi.mock('../../src/db/boss.js', () => ({
   default: {
     send: vi.fn().mockResolvedValue('mock-job-id'),
     on: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../../src/jobs/boss.js', () => ({
   stopBoss: vi.fn(),
 }));
 
-vi.mock('../../src/services/github.service.js', () => {
+vi.mock('../../src/shared/github/github.service.js', () => {
   class GithubService {
     validateRepository = vi.fn().mockResolvedValue({ owner: 'owner', name: 'repo' });
     getLatestRelease = vi.fn().mockResolvedValue('v1.0.0');

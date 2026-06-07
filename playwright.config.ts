@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: 'http://localhost:3099',
   },
   globalSetup: 'tests/e2e/global-setup.ts',
   globalTeardown: 'tests/e2e/global-teardown.ts',

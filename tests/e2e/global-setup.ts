@@ -57,7 +57,7 @@ export default async function globalSetup() {
       DATABASE_URL: databaseUrl,
       REDIS_URL: redisUrl,
       GITHUB_API_URL: wiremockUrl,
-      PORT: '3001',
+      PORT: '3099',
       API_KEY: 'test-api-key',
       RESEND_API_KEY: 're_test_dummy_key',
       NODE_ENV: 'test',
@@ -70,7 +70,7 @@ export default async function globalSetup() {
     console.error(`[app stderr] ${data.toString()}`);
   });
 
-  await waitForServer('http://localhost:3001/metrics');
+  await waitForServer('http://localhost:3099/metrics');
 }
 
 export async function globalTeardown() {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { errorHandler, unknownEndpoint } from './shared/middlewares/errorHandler.js';
-import subscriptionRoutes from './modules/subscription/api/subscription.routes.js';
+import { subscriptionRoutes } from './modules/subscription/index.js';
 import { registry } from './metrics.js';
 import { metricsMiddleware } from './shared/middlewares/metrics.middleware.js';
 import path from 'path';

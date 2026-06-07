@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { HttpError } from '../errors/HttpError.js';
 import { AppError } from '../errors/AppError.js';
-import { GithubNotFoundError, GithubRateLimitError } from '../github/github.service.js';
+import { GithubNotFoundError, GithubRateLimitError } from '../github/index.js';
 import { logger } from '../../di/infrastructure.js';
 
 const log = logger.child({ module: 'http' });

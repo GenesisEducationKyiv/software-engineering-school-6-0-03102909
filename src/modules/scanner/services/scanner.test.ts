@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScannerService } from './scanner.service.js';
-import { GithubRateLimitError } from '../../../shared/github/github.service.js';
-import type { ISubscriptionRepository } from '../../subscription/interfaces.js';
+import { GithubRateLimitError } from '../../../shared/github/index.js';
+import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IRepositoryRepository } from '../interfaces.js';
-import type { IGithubClient } from '../../../shared/github/github.interfaces.js';
-import type { MailerService } from '../../notification/services/mailer.service.js';
+import type { IGithubClient } from '../../../shared/github/index.js';
+import type { MailerService } from '../../notification/index.js';
 import type { Logger } from '../../../config/logger.js';
 
 function createMocks() {

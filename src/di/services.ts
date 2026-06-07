@@ -1,8 +1,7 @@
-import { GithubService } from '../shared/github/github.service.js';
-import { CachedGithubClient } from '../shared/github/cached-github.service.js';
-import { MailerService } from '../modules/notification/services/mailer.service.js';
-import { ScannerService } from '../modules/scanner/services/scanner.service.js';
-import { SubscriptionService } from '../modules/subscription/services/subscription.service.js';
+import { GithubService, CachedGithubClient } from '../shared/github/index.js';
+import { MailerService } from '../modules/notification/index.js';
+import { ScannerService } from '../modules/scanner/index.js';
+import { SubscriptionService } from '../modules/subscription/index.js';
 
 import { redis, resend, confirmationEmailQueue, logger } from './infrastructure.js';
 import { repositoryRepository, subscriptionRepository } from './repositories.js';
