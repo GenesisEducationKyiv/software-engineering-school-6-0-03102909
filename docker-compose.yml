@@ -39,6 +39,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      notification:
+        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -52,6 +54,13 @@ services:
       SCAN_CRON: ${SCAN_CRON:-*/5 * * * *}
       API_KEY: ${API_KEY:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification:3002}
+
+  notification:
+    build: ./services/notification
+    restart: unless-stopped
+    env_file:
+      - ./services/notification/.env
 
   pgadmin:
     image: dpage/pgadmin4:latest
