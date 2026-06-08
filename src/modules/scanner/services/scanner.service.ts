@@ -2,7 +2,7 @@ import type { IRepositoryRepository } from '../interfaces.js';
 import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
 import type { Logger } from '../../../config/logger.js';
-import type { INotificationService } from '../../../shared/mailer/index.js';
+import type { IReleaseNotificationQueue } from '../../../shared/queue.js';
 import { GithubNotFoundError, GithubRateLimitError } from '../../../shared/github/index.js';
 
 export class ScannerService {
@@ -12,7 +12,7 @@ export class ScannerService {
     private readonly repositoryRepo: IRepositoryRepository,
     private readonly githubClient: IGithubClient,
     private readonly subscriptionRepo: ISubscriptionRepository,
-    private readonly mailerService: INotificationService,
+    private readonly releaseQueue: IReleaseNotificationQueue,
     logger: Logger,
   ) {
     this.log = logger.child({ module: 'ScannerService' });
@@ -66,7 +66,7 @@ export class ScannerService {
     const subscribers = await this.subscriptionRepo.findConfirmedSubscribersByRepo(repoId);
     this.log.info(
       { repo: repoFullName, tag, subscriberCount: subscribers.length },
-      'notifying subscribers about release',
+      'enqueueing notifications for subscribers',
     );
 
     let successCount = 0;
@@ -74,25 +74,25 @@ export class ScannerService {
 
     for (const sub of subscribers) {
       try {
-        await this.mailerService.sendReleaseNotification(
-          sub.subscriber.email,
-          repoFullName,
+        await this.releaseQueue.enqueueReleaseNotification({
+          to: sub.subscriber.email,
+          repo: repoFullName,
           tag,
-          sub.unsubscribeToken,
-        );
+          unsubscribeToken: sub.unsubscribeToken,
+        });
         successCount++;
       } catch (err) {
         failCount++;
         this.log.error(
           { err, repo: repoFullName, subscriberEmail: sub.subscriber.email },
-          'failed to send release notification',
+          'failed to enqueue release notification',
         );
       }
     }
 
     this.log.info(
       { repo: repoFullName, tag, successCount, failCount },
-      'finished notifying subscribers',
+      'finished enqueueing subscriber notifications',
     );
   }
 }

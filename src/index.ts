@@ -4,9 +4,8 @@ import prisma from './db/prisma.js';
 import config from './config/env.js';
 import { startBoss, stopBoss } from './db/boss.js';
 import { registerScannerJob } from './modules/scanner/index.js';
-import { registerEmailJob } from './shared/mailer/index.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
-import { boss, notificationService, scannerService } from './container.js';
+import { boss, scannerService } from './container.js';
 import { logger } from './di/infrastructure.js';
 
 const log = logger.child({ module: 'startup' });
@@ -18,7 +17,6 @@ await connectRedis();
 
 await startBoss();
 await registerScannerJob(boss, scannerService, logger);
-await registerEmailJob(boss, notificationService, logger);
 
 const server = app.listen(config.PORT, () => {
   log.info({ port: config.PORT }, 'server running');

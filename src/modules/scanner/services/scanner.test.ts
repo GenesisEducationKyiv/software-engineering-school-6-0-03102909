@@ -4,7 +4,7 @@ import { GithubRateLimitError } from '../../../shared/github/index.js';
 import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IRepositoryRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
-import type { INotificationService } from '../../../shared/mailer/index.js';
+import type { IReleaseNotificationQueue } from '../../../shared/queue.js';
 import type { Logger } from '../../../config/logger.js';
 
 function createMocks() {
@@ -22,10 +22,9 @@ function createMocks() {
     findConfirmedSubscribersByRepo: vi.fn(),
   } as unknown as ISubscriptionRepository;
 
-  const mailerService = {
-    sendReleaseNotification: vi.fn(),
-    sendConfirmationEmail: vi.fn(),
-  } as unknown as INotificationService;
+  const releaseQueue = {
+    enqueueReleaseNotification: vi.fn(),
+  } as unknown as IReleaseNotificationQueue;
 
   const mockLogger = {
     info: vi.fn(),
@@ -39,7 +38,7 @@ function createMocks() {
     repositoryRepo,
     githubClient,
     subscriptionRepo,
-    mailerService,
+    releaseQueue,
     mockLogger,
   );
 
@@ -47,7 +46,7 @@ function createMocks() {
     repositoryRepo,
     githubClient,
     subscriptionRepo,
-    mailerService,
+    releaseQueue,
     scannerService,
     mockLogger,
   };
@@ -63,7 +62,7 @@ describe('ScannerService', () => {
   });
 
   it('should process new releases and notify subscribers', async () => {
-    const { repositoryRepo, githubClient, subscriptionRepo, mailerService, scannerService } =
+    const { repositoryRepo, githubClient, subscriptionRepo, releaseQueue, scannerService } =
       createMocks();
 
     const mockRepos = [{ id: 1, owner: 'facebook', name: 'react', lastSeenTag: 'v18.0.0' }];
@@ -77,17 +76,17 @@ describe('ScannerService', () => {
     await scannerService.scanAllRepositories();
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledWith('facebook', 'react');
-    expect(mailerService.sendReleaseNotification).toHaveBeenCalledWith(
-      'user@test.com',
-      'facebook/react',
-      'v18.2.0',
-      'tok1',
-    );
+    expect(releaseQueue.enqueueReleaseNotification).toHaveBeenCalledWith({
+      to: 'user@test.com',
+      repo: 'facebook/react',
+      tag: 'v18.2.0',
+      unsubscribeToken: 'tok1',
+    });
     expect(repositoryRepo.updateLastSeenTag).toHaveBeenCalledWith(1, 'v18.2.0');
   });
 
   it('should skip repository if there is no new release', async () => {
-    const { repositoryRepo, mailerService, githubClient, scannerService } = createMocks();
+    const { repositoryRepo, releaseQueue, githubClient, scannerService } = createMocks();
 
     const mockRepos = [{ id: 1, owner: 'facebook', name: 'react', lastSeenTag: 'v18.2.0' }];
     (repositoryRepo.findAllWithConfirmedSubscriptions as any).mockResolvedValue(mockRepos);
@@ -95,7 +94,7 @@ describe('ScannerService', () => {
 
     await scannerService.scanAllRepositories();
 
-    expect(mailerService.sendReleaseNotification).not.toHaveBeenCalled();
+    expect(releaseQueue.enqueueReleaseNotification).not.toHaveBeenCalled();
     expect(repositoryRepo.updateLastSeenTag).not.toHaveBeenCalled();
   });
 
@@ -123,7 +122,7 @@ describe('ScannerService', () => {
     const {
       repositoryRepo,
       subscriptionRepo,
-      mailerService,
+      releaseQueue,
       githubClient,
       scannerService,
       mockLogger,
@@ -145,7 +144,7 @@ describe('ScannerService', () => {
     await scannerService.scanAllRepositories();
 
     expect(githubClient.getLatestRelease).toHaveBeenCalledTimes(2);
-    expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(1);
+    expect(releaseQueue.enqueueReleaseNotification).toHaveBeenCalledTimes(1);
     expect(mockLogger.error).toHaveBeenCalledWith(
       { err: expect.any(Error), repo: 'bad/repo' },
       'error scanning repository',
@@ -156,7 +155,7 @@ describe('ScannerService', () => {
     const {
       repositoryRepo,
       subscriptionRepo,
-      mailerService,
+      releaseQueue,
       githubClient,
       scannerService,
       mockLogger,
@@ -170,17 +169,17 @@ describe('ScannerService', () => {
       { subscriber: { email: 'fail@test.com' }, unsubscribeToken: 'tok1' },
       { subscriber: { email: 'ok@test.com' }, unsubscribeToken: 'tok2' },
     ]);
-    (mailerService.sendReleaseNotification as any)
+    (releaseQueue.enqueueReleaseNotification as any)
       .mockRejectedValueOnce(new Error('Resend down'))
       .mockResolvedValueOnce(undefined);
 
     await scannerService.scanAllRepositories();
 
-    expect(mailerService.sendReleaseNotification).toHaveBeenCalledTimes(2);
+    expect(releaseQueue.enqueueReleaseNotification).toHaveBeenCalledTimes(2);
     expect(repositoryRepo.updateLastSeenTag).toHaveBeenCalledWith(1, 'v2.0');
     expect(mockLogger.error).toHaveBeenCalledWith(
       { err: expect.any(Error), repo: 'test/repo', subscriberEmail: 'fail@test.com' },
-      'failed to send release notification',
+      'failed to enqueue release notification',
     );
   });
 });

@@ -54,11 +54,15 @@ services:
       SCAN_CRON: ${SCAN_CRON:-*/5 * * * *}
       API_KEY: ${API_KEY:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification:3002}
 
   notification:
     build: ./services/notification
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
     env_file:
       - ./services/notification/.env
 

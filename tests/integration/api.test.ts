@@ -17,6 +17,7 @@ vi.mock('../../src/db/redis.js', () => ({
 vi.mock('../../src/db/boss.js', () => ({
   default: {
     send: vi.fn().mockResolvedValue('mock-job-id'),
+    createQueue: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),

@@ -69,6 +69,9 @@ export default async function globalSetup() {
   appProcess.stderr?.on('data', (data: Buffer) => {
     console.error(`[app stderr] ${data.toString()}`);
   });
+  appProcess.stdout?.on('data', (data: Buffer) => {
+    console.log(`[app stdout] ${data.toString()}`);
+  });
 
   await waitForServer('http://localhost:3099/metrics');
 }
