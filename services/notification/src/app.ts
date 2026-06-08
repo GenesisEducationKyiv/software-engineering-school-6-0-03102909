@@ -9,6 +9,12 @@ export function createApp(logger: Logger) {
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     logger.error({ err }, 'unhandled error');
+    
+    if (err.name === 'MailerError') {
+      res.status(502).json({ error: err.message });
+      return;
+    }
+    
     res.status(500).json({ error: err.message });
   });
 

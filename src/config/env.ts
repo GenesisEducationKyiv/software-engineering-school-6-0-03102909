@@ -13,4 +13,5 @@ export default {
   RESEND_API_KEY: process.env['RESEND_API_KEY'] ?? '',
   SCAN_CRON: process.env['SCAN_CRON'] ?? '*/5 * * * *',
   LOG_LEVEL: process.env['LOG_LEVEL'] ?? 'info',
+  NOTIFICATION_SERVICE_URL: process.env['NOTIFICATION_SERVICE_URL'] ?? 'http://localhost:3002',
 };
