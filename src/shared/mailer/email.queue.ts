@@ -1,5 +1,5 @@
 import type { PgBoss } from 'pg-boss';
-import type { ConfirmationEmailDto } from '../interfaces.js';
+import type { ConfirmationEmailDto } from './interfaces.js';
 
 export const QUEUE_NAME = 'send-confirmation-email';
 

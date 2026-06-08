@@ -6,6 +6,7 @@ export default defineConfig({
       'tests/integration/**',
       'tests/e2e/**',
       'node_modules/**',
+      'services/**',
     ],
   },
 });

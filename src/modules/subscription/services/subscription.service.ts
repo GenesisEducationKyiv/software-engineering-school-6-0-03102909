@@ -1,6 +1,6 @@
 import type { ISubscriptionRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
-import type { IConfirmationEmailQueue } from '../../notification/index.js';
+import type { IConfirmationEmailQueue } from '../../../shared/mailer/index.js';
 import type { Logger } from '../../../config/logger.js';
 import { HttpError } from '../../../shared/errors/HttpError.js';
 

@@ -2,7 +2,7 @@ import type { IRepositoryRepository } from '../interfaces.js';
 import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
 import type { Logger } from '../../../config/logger.js';
-import type { MailerService } from '../../notification/index.js';
+import type { INotificationService } from '../../../shared/mailer/index.js';
 import { GithubNotFoundError, GithubRateLimitError } from '../../../shared/github/index.js';
 
 export class ScannerService {
@@ -12,7 +12,7 @@ export class ScannerService {
     private readonly repositoryRepo: IRepositoryRepository,
     private readonly githubClient: IGithubClient,
     private readonly subscriptionRepo: ISubscriptionRepository,
-    private readonly mailerService: MailerService,
+    private readonly mailerService: INotificationService,
     logger: Logger,
   ) {
     this.log = logger.child({ module: 'ScannerService' });

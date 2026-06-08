@@ -1,9 +1,9 @@
 import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
-import { AppError } from '../../../shared/errors/AppError.js';
-import type { Logger } from '../../../config/logger.js';
 
-export class MailerError extends AppError {
+import type { Logger } from '../config/logger.js';
+
+export class MailerError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'MailerError';

@@ -4,7 +4,7 @@ import { GithubRateLimitError } from '../../../shared/github/index.js';
 import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IRepositoryRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
-import type { MailerService } from '../../notification/index.js';
+import type { INotificationService } from '../../../shared/mailer/index.js';
 import type { Logger } from '../../../config/logger.js';
 
 function createMocks() {
@@ -24,7 +24,8 @@ function createMocks() {
 
   const mailerService = {
     sendReleaseNotification: vi.fn(),
-  } as unknown as MailerService;
+    sendConfirmationEmail: vi.fn(),
+  } as unknown as INotificationService;
 
   const mockLogger = {
     info: vi.fn(),
