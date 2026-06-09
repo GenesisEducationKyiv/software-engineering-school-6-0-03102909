@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { validateRequest } from '../../../shared/middlewares/validateRequest.js';
+import { validateRequest } from '../../../shared/middlewares/validate-request.middleware.js';
 import { authMiddleware } from '../../../shared/middlewares/auth.middleware.js';
 import {
   subscribeSchema,
   getSubscriptionsSchema,
   tokenParamSchema,
 } from '../validation/subscription.schema.js';
-import { subscribeRateLimiter } from '../../../shared/middlewares/rateLimit.middleware.js';
+import { subscribeRateLimiter } from '../../../shared/middlewares/rate-limit.middleware.js';
 import {
   subscribeController,
   confirmController,
