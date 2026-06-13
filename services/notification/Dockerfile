@@ -21,6 +21,4 @@ COPY --chown=node:node --from=build /app/dist ./dist
 
 USER node
 
-EXPOSE 3002
-
 CMD ["node", "dist/index.js"]

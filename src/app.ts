@@ -6,7 +6,7 @@ import { metricsMiddleware } from './shared/middlewares/metrics.middleware.js';
 import path from 'path';
 import { setupSwagger } from './config/swagger.js';
 import { pinoHttp } from 'pino-http';
-import { logger } from './di/infrastructure.js';
+import { logger } from './di/logger.js';
 
 const app = express();
 

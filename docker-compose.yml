@@ -39,8 +39,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      notification:
-        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 3000
