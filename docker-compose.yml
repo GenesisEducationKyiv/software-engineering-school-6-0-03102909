@@ -60,9 +60,11 @@ services:
       db:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
-    env_file:
-      - ./services/notification/.env
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
 
   pgadmin:
     image: dpage/pgadmin4:latest
