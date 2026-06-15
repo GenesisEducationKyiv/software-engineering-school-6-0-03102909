@@ -1,7 +1,7 @@
 import type { PgBoss } from 'pg-boss';
 import config from '../../../config/env.js';
 import type { ScannerService } from '../services/scanner.service.js';
-import type { Logger } from '../../../config/logger.js';
+import type { Logger } from '../../../shared/logger.js';
 
 const QUEUE_NAME = 'release-scanner';
 

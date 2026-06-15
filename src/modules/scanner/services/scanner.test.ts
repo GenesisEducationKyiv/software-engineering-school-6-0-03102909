@@ -5,7 +5,7 @@ import type { ISubscriptionRepository } from '../../subscription/index.js';
 import type { IRepositoryRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
 import type { IReleaseNotificationQueue } from '../../../shared/queue.js';
-import type { Logger } from '../../../config/logger.js';
+import type { Logger } from '../../../shared/logger.js';
 
 function createMocks() {
   const repositoryRepo: IRepositoryRepository = {

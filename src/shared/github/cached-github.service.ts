@@ -1,5 +1,5 @@
 import type { IGithubClient } from './github.interfaces.js';
-import type { Logger } from '../../config/logger.js';
+import type { Logger } from '../../shared/logger.js';
 import type { GithubRepoData } from './github.service.js';
 import type { RedisClientType } from 'redis';
 import config from '../../config/env.js';
