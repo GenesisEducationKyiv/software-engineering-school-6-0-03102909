@@ -1,5 +1,6 @@
 import type { Resend } from 'resend';
 import { confirmationTemplate, releaseNotificationTemplate } from './email.templates.js';
+import config from '../config/env.js';
 
 import type { Logger } from '../config/logger.js';
 
@@ -22,7 +23,7 @@ export class MailerService {
 
   private async sendMail(to: string, subject: string, html?: string, text?: string): Promise<void> {
     const { error } = await this.resend.emails.send({
-      from: 'GitHub Notifier <noreply@githubnotifier.tech>',
+      from: config.EMAIL_FROM,
       to,
       subject,
       html: html ?? '',

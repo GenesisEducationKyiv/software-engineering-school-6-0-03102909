@@ -10,4 +10,5 @@ export default {
   DATABASE_URL: process.env['DATABASE_URL'] ?? '',
   RESEND_API_KEY: process.env['RESEND_API_KEY'] ?? '',
   LOG_LEVEL: process.env['LOG_LEVEL'] ?? 'info',
+  EMAIL_FROM: process.env['EMAIL_FROM'] ?? 'GitHub Notifier <noreply@githubnotifier.tech>',
 };
