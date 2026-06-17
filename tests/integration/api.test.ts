@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
-import { startPostgres, stopPostgres, truncateTables, getConfirmToken, getUnsubscribeToken } from './setup.js';
+import {
+  startPostgres,
+  stopPostgres,
+  truncateTables,
+  getConfirmToken,
+  getUnsubscribeToken,
+} from './setup.js';
 
 vi.mock('../../src/db/redis.js', () => ({
   redis: {
@@ -68,7 +74,7 @@ describe('API Integration Tests', () => {
         .post('/api/subscribe')
         .send({ email: 'test@example.com', repo: 'owner/repo' });
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(202);
       expect(response.headers['content-type']).toMatch(/json/);
       expect(response.body).toHaveProperty('message');
 
