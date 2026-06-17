@@ -149,9 +149,7 @@
 
         <button id="submit-btn" onclick="handleSubmit()">Subscribe</button>
 
-        <div class="message success" id="success">
-          Check your email to confirm your subscription.
-        </div>
+        <div class="message success" id="success"></div>
         <div class="message error" id="error">
           <span id="error-msg">Something went wrong.</span>
         </div>
@@ -191,6 +189,7 @@
           const data = await res.json();
 
           if (res.ok) {
+            success.textContent = data.message ?? 'Subscription queued successfully.';
             success.style.display = 'block';
             document.getElementById('email').value = '';
             document.getElementById('repo').value = '';
