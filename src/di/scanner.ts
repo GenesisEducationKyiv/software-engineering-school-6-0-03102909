@@ -1,14 +1,18 @@
 import { RepositoryRepository, ScannerService } from '../modules/scanner/index.js';
 import prisma from '../db/prisma.js';
-import { notificationQueue, logger } from './infrastructure.js';
+import { logger } from './infrastructure.js';
 import { githubClient } from './github.js';
 import { subscriptionRepository } from './subscription.js';
+import type { IReleaseNotificationQueue } from '../shared/queue.js';
 
 export const repositoryRepository = new RepositoryRepository(prisma);
-export const scannerService = new ScannerService(
-  repositoryRepository,
-  githubClient,
-  subscriptionRepository,
-  notificationQueue,
-  logger,
-);
+
+export function createScannerService(releaseQueue: IReleaseNotificationQueue): ScannerService {
+  return new ScannerService(
+    repositoryRepository,
+    githubClient,
+    subscriptionRepository,
+    releaseQueue,
+    logger,
+  );
+}
