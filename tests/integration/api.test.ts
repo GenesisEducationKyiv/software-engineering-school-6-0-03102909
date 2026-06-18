@@ -20,16 +20,25 @@ vi.mock('../../src/db/redis.js', () => ({
   disconnectRedis: vi.fn(),
 }));
 
-vi.mock('../../src/db/boss.js', () => ({
-  default: {
-    send: vi.fn().mockResolvedValue('mock-job-id'),
-    createQueue: vi.fn().mockResolvedValue(undefined),
+vi.mock('../../src/shared/messaging/rabbitmq.js', () => ({
+  connectRabbitMQ: vi.fn().mockResolvedValue({
+    publish: vi.fn(),
+    consume: vi.fn(),
+    assertExchange: vi.fn(),
+    assertQueue: vi.fn(),
+    bindQueue: vi.fn(),
+    prefetch: vi.fn(),
+    ack: vi.fn(),
+    nack: vi.fn(),
     on: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
+    close: vi.fn(),
+  }),
+  disconnectRabbitMQ: vi.fn(),
+  EXCHANGE_NAME: 'notifications',
+  QUEUE_CONFIG: {
+    CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
+    RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
   },
-  startBoss: vi.fn(),
-  stopBoss: vi.fn(),
 }));
 
 vi.mock('../../src/shared/github/github.service.js', () => {
@@ -50,6 +59,12 @@ beforeAll(async () => {
   process.env['DATABASE_URL'] = databaseUrl;
   process.env['API_KEY'] = API_KEY;
   process.env['RESEND_API_KEY'] = 're_test_dummy_key';
+
+  const { connectRabbitMQ } = await import('../../src/shared/messaging/rabbitmq.js');
+  const { initContainer } = await import('../../src/container.js');
+
+  const mockChannel = await connectRabbitMQ('amqp://mock', console as any);
+  initContainer(mockChannel);
 
   const appModule = await import('../../src/app.js');
   app = appModule.default;
