@@ -5,7 +5,7 @@ import config from './config/env.js';
 import { startBoss, stopBoss } from './db/boss.js';
 import { registerScannerJob } from './modules/scanner/index.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
-import { boss, scannerService } from './container.js';
+import { scannerService } from './container.js';
 import { logger } from './di/infrastructure.js';
 
 const log = logger.child({ module: 'startup' });
@@ -16,7 +16,7 @@ log.info('database connected');
 await connectRedis();
 
 await startBoss();
-await registerScannerJob(boss, scannerService, logger);
+const scannerJob = registerScannerJob(config.SCAN_CRON, scannerService, logger);
 
 const server = app.listen(config.PORT, () => {
   log.info({ port: config.PORT }, 'server running');
@@ -25,6 +25,7 @@ const server = app.listen(config.PORT, () => {
 const shutdown = async () => {
   log.info('shutting down');
   server.close();
+  scannerJob.stop();
   await stopBoss();
   await disconnectRedis();
   await prisma.$disconnect();
