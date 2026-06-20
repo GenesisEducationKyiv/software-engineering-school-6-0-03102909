@@ -1,3 +1,4 @@
-import { createLogger } from '../config/logger.js';
+import { createLogger } from '../shared/logger.js';
+import { loggerConfig } from '../config/logger.js';
 
-export const logger = createLogger();
+export const logger = createLogger(loggerConfig);

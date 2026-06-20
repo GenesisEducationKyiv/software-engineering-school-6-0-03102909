@@ -53,6 +53,19 @@ services:
       API_KEY: ${API_KEY:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
 
+  notification:
+    build: ./services/notification
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
   pgadmin:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
@@ -84,7 +97,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.53.0
     ports:
-      - '9090:9090'
+      - '9091:9090'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -121,7 +134,7 @@ services:
       - xpack.security.enabled=false
       - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     ports:
-      - '9200:9200'
+      - '9201:9200'
     volumes:
       - esdata:/usr/share/elasticsearch/data
     restart: unless-stopped

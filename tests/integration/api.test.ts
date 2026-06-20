@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
-import { startPostgres, stopPostgres, truncateTables, getConfirmToken, getUnsubscribeToken } from './setup.js';
+import {
+  startPostgres,
+  stopPostgres,
+  truncateTables,
+  getConfirmToken,
+  getUnsubscribeToken,
+} from './setup.js';
 
 vi.mock('../../src/db/redis.js', () => ({
   redis: {
@@ -14,9 +20,10 @@ vi.mock('../../src/db/redis.js', () => ({
   disconnectRedis: vi.fn(),
 }));
 
-vi.mock('../../src/jobs/boss.js', () => ({
+vi.mock('../../src/db/boss.js', () => ({
   default: {
     send: vi.fn().mockResolvedValue('mock-job-id'),
+    createQueue: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
@@ -25,7 +32,7 @@ vi.mock('../../src/jobs/boss.js', () => ({
   stopBoss: vi.fn(),
 }));
 
-vi.mock('../../src/services/github.service.js', () => {
+vi.mock('../../src/shared/github/github.service.js', () => {
   class GithubService {
     validateRepository = vi.fn().mockResolvedValue({ owner: 'owner', name: 'repo' });
     getLatestRelease = vi.fn().mockResolvedValue('v1.0.0');
@@ -67,7 +74,7 @@ describe('API Integration Tests', () => {
         .post('/api/subscribe')
         .send({ email: 'test@example.com', repo: 'owner/repo' });
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(202);
       expect(response.headers['content-type']).toMatch(/json/);
       expect(response.body).toHaveProperty('message');
 
