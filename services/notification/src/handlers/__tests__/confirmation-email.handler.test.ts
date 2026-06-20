@@ -27,7 +27,7 @@ describe('createConfirmationEmailHandler', () => {
   const dto: ConfirmationEmailDto = {
     to: 'user@example.com',
     repo: 'owner/repo',
-    confirmToken: 'abc-123',
+    confirmToken: '123e4567-e89b-12d3-a456-426614174000',
   };
 
   beforeEach(() => {

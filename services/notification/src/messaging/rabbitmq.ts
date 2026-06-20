@@ -37,8 +37,11 @@ export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
   logger.info('RabbitMQ disconnected');
 }
 
+import type { z } from 'zod';
+
 export async function consumeQueue<T>(
   queueName: string, 
+  schema: z.ZodType<T>,
   handler: (data: T) => Promise<void>, 
   logger: Logger
 ): Promise<void> {
@@ -50,11 +53,12 @@ export async function consumeQueue<T>(
   await currentChannel.consume(queueName, async (msg: ConsumeMessage | null) => {
     if (!msg) return;
     try {
-      const data = JSON.parse(msg.content.toString()) as T;
+      const raw = JSON.parse(msg.content.toString());
+      const data = schema.parse(raw);
       await handler(data);
       currentChannel.ack(msg); 
     } catch (err) {
-      logger.error({ err, queue: queueName }, 'Failed to process message');
+      logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
       currentChannel.nack(msg, false, false); 
     }
   });

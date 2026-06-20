@@ -28,7 +28,7 @@ describe('createReleaseNotificationHandler', () => {
     to: 'user@example.com',
     repo: 'facebook/react',
     tag: 'v19.0.0',
-    unsubscribeToken: 'unsub-token-123',
+    unsubscribeToken: '123e4567-e89b-12d3-a456-426614174000',
   };
 
   beforeEach(() => {
