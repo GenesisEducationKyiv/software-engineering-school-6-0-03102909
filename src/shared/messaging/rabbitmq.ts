@@ -3,6 +3,8 @@ import type { ConfirmChannel } from 'amqplib';
 import type { Logger } from '../logger.js';
 
 const EXCHANGE_NAME = 'notifications';
+export const DLX_EXCHANGE = 'notifications.dlx';
+export const DLQ_NAME = 'dead-letters';
 
 const QUEUE_CONFIG = {
   CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
@@ -23,9 +25,16 @@ export async function connectRabbitMQ(url: string, logger: Logger): Promise<Chan
   channel = connection.createChannel({
     json: true,
     setup: async (ch: ConfirmChannel) => {
+      await ch.assertExchange(DLX_EXCHANGE, 'fanout', { durable: true });
+      await ch.assertQueue(DLQ_NAME, { durable: true });
+      await ch.bindQueue(DLQ_NAME, DLX_EXCHANGE, '');
+
       await ch.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
       for (const { queue, routingKey } of Object.values(QUEUE_CONFIG)) {
-        await ch.assertQueue(queue, { durable: true });
+        await ch.assertQueue(queue, { 
+          durable: true,
+          deadLetterExchange: DLX_EXCHANGE
+        });
         await ch.bindQueue(queue, EXCHANGE_NAME, routingKey);
       }
       log.info('RabbitMQ exchange and queues asserted');
