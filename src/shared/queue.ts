@@ -1,4 +1,4 @@
-import type { Channel } from 'amqplib';
+import type { ChannelWrapper } from 'amqp-connection-manager';
 import { EXCHANGE_NAME, QUEUE_CONFIG } from './messaging/rabbitmq.js';
 
 export interface ConfirmationEmailDto {
@@ -23,24 +23,23 @@ export interface IReleaseNotificationQueue {
 }
 
 export class NotificationQueue implements IConfirmationEmailQueue, IReleaseNotificationQueue {
-  constructor(private readonly channel: Channel) {}
+  constructor(private readonly channel: ChannelWrapper) {}
 
   async enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void> {
-    this.channel.publish(
+    await this.channel.publish(
       EXCHANGE_NAME,
       QUEUE_CONFIG.CONFIRMATION_EMAIL.routingKey,
-      Buffer.from(JSON.stringify(data)),
+      data,
       { persistent: true },
     );
   }
 
   async enqueueReleaseNotification(data: ReleaseNotificationDto): Promise<void> {
-    this.channel.publish(
+    await this.channel.publish(
       EXCHANGE_NAME,
       QUEUE_CONFIG.RELEASE_NOTIFICATION.routingKey,
-      Buffer.from(JSON.stringify(data)),
+      data,
       { persistent: true },
     );
   }
 }
-

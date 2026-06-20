@@ -1,4 +1,5 @@
-import amqplib, { type ChannelModel, type Channel } from 'amqplib';
+import amqp, { type AmqpConnectionManager, type ChannelWrapper } from 'amqp-connection-manager';
+import type { ConfirmChannel } from 'amqplib';
 import type { Logger } from '../logger.js';
 
 const EXCHANGE_NAME = 'notifications';
@@ -8,26 +9,31 @@ const QUEUE_CONFIG = {
   RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
 } as const;
 
-let connection: ChannelModel | undefined;
-let channel: Channel | undefined;
+let connection: AmqpConnectionManager | undefined;
+let channel: ChannelWrapper | undefined;
 
-export async function connectRabbitMQ(url: string, logger: Logger): Promise<Channel> {
+export async function connectRabbitMQ(url: string, logger: Logger): Promise<ChannelWrapper> {
   const log = logger.child({ module: 'rabbitmq' });
 
-  connection = await amqplib.connect(url);
+  connection = amqp.connect([url]);
 
-  connection.on('error', (err) => log.error({ err }, 'RabbitMQ connection error'));
-  connection.on('close', () => log.warn('RabbitMQ connection closed'));
+  connection.on('connect', () => log.info('RabbitMQ connected'));
+  connection.on('disconnect', (err) => log.warn({ err }, 'RabbitMQ disconnected. Retrying...'));
 
-  channel = await connection.createChannel();
-  await channel.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
+  channel = connection.createChannel({
+    json: true,
+    setup: async (ch: ConfirmChannel) => {
+      await ch.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
+      for (const { queue, routingKey } of Object.values(QUEUE_CONFIG)) {
+        await ch.assertQueue(queue, { durable: true });
+        await ch.bindQueue(queue, EXCHANGE_NAME, routingKey);
+      }
+      log.info('RabbitMQ exchange and queues asserted');
+    },
+  });
 
-  for (const { queue, routingKey } of Object.values(QUEUE_CONFIG)) {
-    await channel.assertQueue(queue, { durable: true });
-    await channel.bindQueue(queue, EXCHANGE_NAME, routingKey);
-  }
-
-  log.info('RabbitMQ connected, exchange and queues asserted');
+  await channel.waitForConnect();
+  
   return channel;
 }
 
@@ -44,7 +50,7 @@ export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
     catch (err) { log.warn({ err }, 'Error closing connection'); }
   }
   
-  log.info('RabbitMQ disconnected');
+  log.info('RabbitMQ manually disconnected');
 }
 
 export { EXCHANGE_NAME, QUEUE_CONFIG };
