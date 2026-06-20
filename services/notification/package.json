@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "amqp-connection-manager": "^5.0.0",
     "amqplib": "^2.0.1",
     "dotenv": "^17.4.2",
     "pino": "^10.3.1",

@@ -1,6 +1,6 @@
 import type { Logger } from './config/logger.js';
 import type { MailerService } from './services/mailer.service.js';
-import { connectRabbitMQ, consumeQueue } from './messaging/rabbitmq.js';
+import { connectRabbitMQ, consumeQueue, QUEUE_CONFIG } from './messaging/rabbitmq.js';
 import { createConfirmationEmailHandler } from './handlers/confirmation-email.handler.js';
 import { createReleaseNotificationHandler } from './handlers/release-notification.handler.js';
 import { ConfirmationEmailSchema } from './dto/confirmation-email.dto.js';
@@ -12,8 +12,8 @@ export async function startWorker(rabbitmqUrl: string, mailer: MailerService, lo
   const confirmationHandler = createConfirmationEmailHandler(mailer, logger);
   const releaseHandler = createReleaseNotificationHandler(mailer, logger);
 
-  await consumeQueue('send-confirmation-email', ConfirmationEmailSchema, confirmationHandler, logger);
-  await consumeQueue('send-release-notification', ReleaseNotificationSchema, releaseHandler, logger);
+  await consumeQueue(QUEUE_CONFIG.CONFIRMATION_EMAIL.queue, ConfirmationEmailSchema, confirmationHandler, logger);
+  await consumeQueue(QUEUE_CONFIG.RELEASE_NOTIFICATION.queue, ReleaseNotificationSchema, releaseHandler, logger);
 
   logger.info('RabbitMQ consumer started');
 }

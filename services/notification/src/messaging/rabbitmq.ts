@@ -1,43 +1,54 @@
-import amqplib, { type ChannelModel, type Channel, type ConsumeMessage } from 'amqplib';
+import amqp, { type AmqpConnectionManager, type ChannelWrapper } from 'amqp-connection-manager';
+import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import type { Logger } from '../config/logger.js';
+import type { z } from 'zod';
 
-let connection: ChannelModel | undefined;
-let channel: Channel | undefined;
+export const EXCHANGE_NAME = 'notifications';
 
-export async function connectRabbitMQ(url: string, logger: Logger): Promise<Channel> {
-  connection = await amqplib.connect(url);
+export const QUEUE_CONFIG = {
+  CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
+  RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
+} as const;
+
+let connection: AmqpConnectionManager | undefined;
+let channel: ChannelWrapper | undefined;
+
+export async function connectRabbitMQ(url: string, logger: Logger): Promise<ChannelWrapper> {
+  const log = logger.child({ module: 'rabbitmq' });
+
+  connection = amqp.connect([url]);
   
-  connection.on('error', (err) => logger.error({ err }, 'RabbitMQ connection error'));
-  connection.on('close', () => {
-    logger.error('RabbitMQ connection closed. Exiting process.');
-    process.exit(1);
+  connection.on('connect', () => log.info('RabbitMQ connected'));
+  connection.on('disconnect', (err) => log.warn({ err }, 'RabbitMQ disconnected. Retrying...'));
+
+  channel = connection.createChannel({
+    json: true,
+    setup: async (ch: ConfirmChannel) => {
+      await ch.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
+      for (const { queue, routingKey } of Object.values(QUEUE_CONFIG)) {
+        await ch.assertQueue(queue, { durable: true });
+        await ch.bindQueue(queue, EXCHANGE_NAME, routingKey);
+      }
+      await ch.prefetch(10);
+      log.info('RabbitMQ exchange and queues asserted');
+    }
   });
 
-  channel = await connection.createChannel();
-  
-  channel.on('error', (err) => logger.error({ err }, 'RabbitMQ channel error'));
-  channel.on('close', () => logger.warn('RabbitMQ channel closed'));
-
-  await channel.prefetch(10);
-
-  logger.info('RabbitMQ connected');
+  await channel.waitForConnect();
   return channel;
 }
 
 export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
+  const log = logger.child({ module: 'rabbitmq' });
+
   if (channel) {
-    try { await channel.close(); } catch (err) { logger.warn({ err }, 'Error closing channel'); }
+    try { await channel.close(); } catch (err) { log.warn({ err }, 'Error closing channel'); }
   }
   if (connection) {
-    try { 
-      connection.removeAllListeners('close');
-      await connection.close(); 
-    } catch (err) { logger.warn({ err }, 'Error closing connection'); }
+    try { await connection.close(); } catch (err) { log.warn({ err }, 'Error closing connection'); }
   }
-  logger.info('RabbitMQ disconnected');
+  log.info('RabbitMQ manually disconnected');
 }
-
-import type { z } from 'zod';
 
 export async function consumeQueue<T>(
   queueName: string, 
@@ -48,18 +59,18 @@ export async function consumeQueue<T>(
   const currentChannel = channel; 
   if (!currentChannel) throw new Error('Channel not initialized');
   
-  await currentChannel.assertQueue(queueName, { durable: true });
-  
-  await currentChannel.consume(queueName, async (msg: ConsumeMessage | null) => {
-    if (!msg) return;
-    try {
-      const raw = JSON.parse(msg.content.toString());
-      const data = schema.parse(raw);
-      await handler(data);
-      currentChannel.ack(msg); 
-    } catch (err) {
-      logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
-      currentChannel.nack(msg, false, false); 
-    }
+  await currentChannel.addSetup(async (ch: ConfirmChannel) => {
+    await ch.consume(queueName, async (msg: ConsumeMessage | null) => {
+      if (!msg) return;
+      try {
+        const raw = JSON.parse(msg.content.toString());
+        const data = schema.parse(raw);
+        await handler(data);
+        ch.ack(msg); 
+      } catch (err) {
+        logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
+        ch.nack(msg, false, false); 
+      }
+    });
   });
 }
