@@ -75,10 +75,10 @@ export async function consumeQueue<T>(
         const raw = JSON.parse(msg.content.toString());
         const data = schema.parse(raw);
         await handler(data);
-        ch.ack(msg); 
+        currentChannel.ack(msg); 
       } catch (err) {
         logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
-        ch.nack(msg, false, false); 
+        currentChannel.nack(msg, false, false); 
       }
     });
   });
