@@ -6,8 +6,8 @@ import { createReleaseNotificationHandler } from './handlers/release-notificatio
 import { ConfirmationEmailSchema } from './dto/confirmation-email.dto.js';
 import { ReleaseNotificationSchema } from './dto/release-notification.dto.js';
 
-export async function startWorker(rabbitmqUrl: string, mailer: MailerService, logger: Logger): Promise<void> {
-  await connectRabbitMQ(rabbitmqUrl, logger);
+export async function startWorker(rabbitmqUrl: string, prefetch: number, mailer: MailerService, logger: Logger): Promise<void> {
+  await connectRabbitMQ(rabbitmqUrl, prefetch, logger);
 
   const confirmationHandler = createConfirmationEmailHandler(mailer, logger);
   const releaseHandler = createReleaseNotificationHandler(mailer, logger);
