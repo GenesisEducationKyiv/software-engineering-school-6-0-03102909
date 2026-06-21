@@ -18,6 +18,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Notification Service dependencies
+        run: npm ci
+        working-directory: services/notification
+
       - name: Run Linter
         run: npm run lint
 
@@ -45,6 +49,14 @@ jobs:
 
       - name: Run Unit Tests
         run: npm run test
+
+      - name: Install Notification Service dependencies
+        run: npm ci
+        working-directory: services/notification
+
+      - name: Run Notification Service Tests
+        run: npm run test
+        working-directory: services/notification
 
   integration-tests:
     needs: lint
