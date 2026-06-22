@@ -52,9 +52,11 @@ export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
 
   if (channel) {
     try { await channel.close(); } catch (err) { log.warn({ err }, 'Error closing channel'); }
+    channel = undefined;
   }
   if (connection) {
     try { await connection.close(); } catch (err) { log.warn({ err }, 'Error closing connection'); }
+    connection = undefined;
   }
   log.info('RabbitMQ manually disconnected');
 }
