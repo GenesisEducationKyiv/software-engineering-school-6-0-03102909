@@ -73,14 +73,26 @@ export async function consumeQueue<T>(
   await currentChannel.addSetup(async (ch: ConfirmChannel) => {
     await ch.consume(queueName, async (msg: ConsumeMessage | null) => {
       if (!msg) return;
+      let success = false;
       try {
         const raw = JSON.parse(msg.content.toString());
         const data = schema.parse(raw);
         await handler(data);
-        currentChannel.ack(msg); 
+        success = true;
       } catch (err) {
         logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
-        currentChannel.nack(msg, false, false); 
+      }
+
+      try {
+        if (success) {
+          ch.ack(msg);
+        } else {
+          ch.nack(msg, false, false);
+        }
+      } catch (err) {
+        if ((err as Error).message !== 'Channel closed') {
+          logger.warn({ err }, 'Failed to acknowledge message');
+        }
       }
     });
   });

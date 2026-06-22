@@ -31,6 +31,8 @@ describe('RabbitMQ Messaging', () => {
       bindQueue: vi.fn(),
       prefetch: vi.fn(),
       consume: vi.fn(),
+      ack: vi.fn(),
+      nack: vi.fn(),
     };
 
     mockChannelWrapper = {
@@ -118,8 +120,8 @@ describe('RabbitMQ Messaging', () => {
       await consumeCallback(validMsg);
 
       expect(handler).toHaveBeenCalledWith({ id: '123' });
-      expect(mockChannelWrapper.ack).toHaveBeenCalledWith(validMsg);
-      expect(mockChannelWrapper.nack).not.toHaveBeenCalled();
+      expect(mockConfirmChannel.ack).toHaveBeenCalledWith(validMsg);
+      expect(mockConfirmChannel.nack).not.toHaveBeenCalled();
     });
 
     it('should nack message without requeue if schema validation fails', async () => {
@@ -132,8 +134,8 @@ describe('RabbitMQ Messaging', () => {
       await consumeCallback(invalidMsg);
 
       expect(handler).not.toHaveBeenCalled();
-      expect(mockChannelWrapper.ack).not.toHaveBeenCalled();
-      expect(mockChannelWrapper.nack).toHaveBeenCalledWith(invalidMsg, false, false);
+      expect(mockConfirmChannel.ack).not.toHaveBeenCalled();
+      expect(mockConfirmChannel.nack).toHaveBeenCalledWith(invalidMsg, false, false);
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
@@ -147,8 +149,8 @@ describe('RabbitMQ Messaging', () => {
       await consumeCallback(validMsg);
 
       expect(handler).toHaveBeenCalled();
-      expect(mockChannelWrapper.ack).not.toHaveBeenCalled();
-      expect(mockChannelWrapper.nack).toHaveBeenCalledWith(validMsg, false, false);
+      expect(mockConfirmChannel.ack).not.toHaveBeenCalled();
+      expect(mockConfirmChannel.nack).toHaveBeenCalledWith(validMsg, false, false);
       expect(mockLogger.error).toHaveBeenCalled();
     });
     
@@ -169,8 +171,8 @@ describe('RabbitMQ Messaging', () => {
       await consumeCallback(null);
 
       expect(handler).not.toHaveBeenCalled();
-      expect(mockChannelWrapper.ack).not.toHaveBeenCalled();
-      expect(mockChannelWrapper.nack).not.toHaveBeenCalled();
+      expect(mockConfirmChannel.ack).not.toHaveBeenCalled();
+      expect(mockConfirmChannel.nack).not.toHaveBeenCalled();
     });
   });
 });
