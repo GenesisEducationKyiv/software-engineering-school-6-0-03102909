@@ -86,8 +86,11 @@ export async function globalTeardown() {
   if (appProcess?.pid) {
     try {
       process.kill(-appProcess.pid, 'SIGKILL');
-      // eslint-disable-next-line no-empty
-    } catch {}
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+        console.error('failed to kill app process');
+      }
+    }
   }
   if (rabbitmqContainer) await rabbitmqContainer.stop();
   if (wiremockContainer) await wiremockContainer.stop();

@@ -31,7 +31,6 @@ describe('createConfirmationEmailHandler', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     ({ mailer, logger } = createMocks());
     handler = createConfirmationEmailHandler(mailer, logger);
   });
@@ -49,7 +48,7 @@ describe('createConfirmationEmailHandler', () => {
 
   it('should throw and log error when mailer fails', async () => {
     const error = new Error('send failed');
-    (mailer.sendConfirmationEmail as any).mockRejectedValueOnce(error);
+    vi.mocked(mailer.sendConfirmationEmail).mockRejectedValueOnce(error);
 
     await expect(handler(dto)).rejects.toThrow('send failed');
 
