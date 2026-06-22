@@ -31,6 +31,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      - name: Type Check (Root)
+        run: npm run build
+
+      - name: Type Check (Notification Service)
+        run: npm run build
+        working-directory: services/notification
+
   unit-tests:
     needs: lint
     runs-on: ubuntu-latest
