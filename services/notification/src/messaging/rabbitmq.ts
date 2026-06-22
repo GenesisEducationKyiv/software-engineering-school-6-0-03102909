@@ -61,6 +61,51 @@ export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
   log.info('RabbitMQ manually disconnected');
 }
 
+async function processMessageWithRetry<T>(
+  data: T, 
+  handler: (data: T) => Promise<void>, 
+  queueName: string, 
+  logger: Logger
+): Promise<boolean> {
+  let attempts = 0;
+  const maxAttempts = 3;
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      await handler(data);
+      return true;
+    } catch (err) {
+      if (attempts >= maxAttempts) {
+        logger.error({ err, queue: queueName }, 'Handler failed after retries');
+      } else {
+        logger.warn({ err, queue: queueName, attempt: attempts }, 'Handler failed, retrying...');
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+  return false;
+}
+
+function safeAck(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
+  try {
+    ch.ack(msg);
+  } catch (err) {
+    if ((err as Error).message !== 'Channel closed') {
+      logger.warn({ err }, 'Failed to acknowledge message');
+    }
+  }
+}
+
+function safeNack(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
+  try {
+    ch.nack(msg, false, false);
+  } catch (err) {
+    if ((err as Error).message !== 'Channel closed') {
+      logger.warn({ err }, 'Failed to negative-acknowledge message');
+    }
+  }
+}
+
 export async function consumeQueue<T>(
   queueName: string, 
   schema: z.ZodType<T>,
@@ -73,26 +118,24 @@ export async function consumeQueue<T>(
   await currentChannel.addSetup(async (ch: ConfirmChannel) => {
     await ch.consume(queueName, async (msg: ConsumeMessage | null) => {
       if (!msg) return;
-      let success = false;
+      
+      let parsedData: T | undefined;
       try {
         const raw = JSON.parse(msg.content.toString());
-        const data = schema.parse(raw);
-        await handler(data);
-        success = true;
+        parsedData = schema.parse(raw);
       } catch (err) {
-        logger.error({ err, queue: queueName }, 'Failed to process message or validation failed');
+        logger.error({ err, queue: queueName }, 'Message parsing or validation failed');
       }
 
-      try {
-        if (success) {
-          ch.ack(msg);
-        } else {
-          ch.nack(msg, false, false);
-        }
-      } catch (err) {
-        if ((err as Error).message !== 'Channel closed') {
-          logger.warn({ err }, 'Failed to acknowledge message');
-        }
+      let success = false;
+      if (parsedData !== undefined) {
+        success = await processMessageWithRetry(parsedData, handler, queueName, logger);
+      }
+
+      if (success) {
+        safeAck(ch, msg, logger);
+      } else {
+        safeNack(ch, msg, logger);
       }
     });
   });
