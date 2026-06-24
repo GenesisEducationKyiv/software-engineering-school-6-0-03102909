@@ -7,7 +7,8 @@ export const subscribeController = async (req: Request, res: Response): Promise<
   await subscriptionService.subscribe(email, repo);
 
   res.status(202).json({
-    message: "Subscription created. Check your email for confirmation. Didn't receive it? Please try again.",
+    message:
+      "Subscription created. Check your email for confirmation. Didn't receive it? Please try again.",
   });
 };
 

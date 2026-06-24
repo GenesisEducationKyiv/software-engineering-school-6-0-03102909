@@ -12,11 +12,17 @@ export function createSubscriptionSagaHandler(
     log.debug({ type: reply.type }, 'processing saga reply');
 
     if (reply.type === 'ConfirmationEmailSent') {
-      log.info({ confirmToken: reply.payload.confirmToken }, 'confirmation email sent successfully');
+      log.info(
+        { confirmToken: reply.payload.confirmToken },
+        'confirmation email sent successfully',
+      );
     }
 
     if (reply.type === 'ConfirmationEmailFailed') {
-      log.info({ confirmToken: reply.payload.confirmToken, error: reply.payload.error }, 'email failed, running compensation');
+      log.info(
+        { confirmToken: reply.payload.confirmToken, error: reply.payload.error },
+        'email failed, running compensation',
+      );
       await subscriptionRepo.removeByConfirmToken(reply.payload.confirmToken);
     }
   };

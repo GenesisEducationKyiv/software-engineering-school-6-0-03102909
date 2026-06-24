@@ -26,16 +26,14 @@ export async function startPostgres(): Promise<string> {
 }
 
 export async function truncateTables(): Promise<void> {
-  await pool.query(
-    'TRUNCATE TABLE subscriptions, repositories, subscribers CASCADE',
-  );
+  await pool.query('TRUNCATE TABLE subscriptions, repositories, subscribers CASCADE');
 }
 
 export async function query(sql: string, params?: unknown[]): Promise<import('pg').QueryResult> {
   return pool.query(sql, params);
 }
 
-// helpers - tokens are not exposed via api 
+// helpers - tokens are not exposed via api
 
 export async function getConfirmToken(email: string): Promise<string> {
   const result = await pool.query(

@@ -1,9 +1,9 @@
 import type { ChannelWrapper } from 'amqp-connection-manager';
-import { 
-  EXCHANGE_NAME, 
+import {
+  EXCHANGE_NAME,
   QUEUE_CONFIG,
   type ConfirmationEmailDto,
-  type ReleaseNotificationDto
+  type ReleaseNotificationDto,
 } from '@github-release-notification/shared';
 
 export interface IConfirmationEmailQueue {
@@ -18,20 +18,14 @@ export class NotificationQueue implements IConfirmationEmailQueue, IReleaseNotif
   constructor(private readonly channel: ChannelWrapper) {}
 
   async enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void> {
-    await this.channel.publish(
-      EXCHANGE_NAME,
-      QUEUE_CONFIG.CONFIRMATION_EMAIL.routingKey,
-      data,
-      { persistent: true },
-    );
+    await this.channel.publish(EXCHANGE_NAME, QUEUE_CONFIG.CONFIRMATION_EMAIL.routingKey, data, {
+      persistent: true,
+    });
   }
 
   async enqueueReleaseNotification(data: ReleaseNotificationDto): Promise<void> {
-    await this.channel.publish(
-      EXCHANGE_NAME,
-      QUEUE_CONFIG.RELEASE_NOTIFICATION.routingKey,
-      data,
-      { persistent: true },
-    );
+    await this.channel.publish(EXCHANGE_NAME, QUEUE_CONFIG.RELEASE_NOTIFICATION.routingKey, data, {
+      persistent: true,
+    });
   }
 }

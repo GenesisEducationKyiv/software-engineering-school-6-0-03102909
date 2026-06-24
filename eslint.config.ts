@@ -6,12 +6,12 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
   globalIgnores([
-    '**/node_modules/**', 
-    '**/dist/**', 
-    '**/build/**', 
-    '.env', 
-    '**/coverage/**', 
-    'packages/api/src/generated/**'
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/build/**',
+    '.env',
+    '**/coverage/**',
+    'packages/api/src/generated/**',
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,

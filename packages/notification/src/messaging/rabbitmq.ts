@@ -1,13 +1,13 @@
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import type { Logger } from '@github-release-notification/shared';
 import type { z } from 'zod';
-import { 
-  EXCHANGE_NAME, 
-  QUEUE_CONFIG, 
+import {
+  EXCHANGE_NAME,
+  QUEUE_CONFIG,
   DLX_EXCHANGE,
   DLQ_NAME,
   connectRabbitMQ as connectSharedRabbitMQ,
-  disconnectRabbitMQ as disconnectSharedRabbitMQ
+  disconnectRabbitMQ as disconnectSharedRabbitMQ,
 } from '@github-release-notification/shared';
 import type { ChannelWrapper } from 'amqp-connection-manager';
 
@@ -15,7 +15,11 @@ let channel: ChannelWrapper | undefined;
 
 export { EXCHANGE_NAME, QUEUE_CONFIG, DLX_EXCHANGE, DLQ_NAME };
 
-export async function connectRabbitMQ(url: string, prefetch: number, logger: Logger): Promise<import('amqp-connection-manager').ChannelWrapper> {
+export async function connectRabbitMQ(
+  url: string,
+  prefetch: number,
+  logger: Logger,
+): Promise<import('amqp-connection-manager').ChannelWrapper> {
   channel = await connectSharedRabbitMQ(url, logger, prefetch);
   return channel;
 }
@@ -26,10 +30,10 @@ export async function disconnectRabbitMQ(logger: Logger) {
 }
 
 async function processMessageWithRetry<T>(
-  data: T, 
-  handler: (data: T) => Promise<void>, 
-  queueName: string, 
-  logger: Logger
+  data: T,
+  handler: (data: T) => Promise<void>,
+  queueName: string,
+  logger: Logger,
 ): Promise<boolean> {
   let attempts = 0;
   const maxAttempts = 3;
@@ -71,18 +75,18 @@ function safeNack(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
 }
 
 export async function consumeQueue<T>(
-  queueName: string, 
+  queueName: string,
   schema: z.ZodType<T>,
-  handler: (data: T) => Promise<void>, 
-  logger: Logger
+  handler: (data: T) => Promise<void>,
+  logger: Logger,
 ): Promise<void> {
-  const currentChannel = channel; 
+  const currentChannel = channel;
   if (!currentChannel) throw new Error('Channel not initialized');
-  
+
   await currentChannel.addSetup(async (ch: ConfirmChannel) => {
     await ch.consume(queueName, async (msg: ConsumeMessage | null) => {
       if (!msg) return;
-      
+
       let parsedData: T | undefined;
       try {
         const raw = JSON.parse(msg.content.toString());

@@ -1,10 +1,10 @@
 import type { ConfirmChannel } from 'amqplib';
 import type { ChannelWrapper } from 'amqp-connection-manager';
-import { 
+import {
   type Logger,
   QUEUE_CONFIG,
   SagaReplySchema,
-  type SagaReply 
+  type SagaReply,
 } from '@github-release-notification/shared';
 
 export class SagaReplyConsumer {
@@ -21,11 +21,11 @@ export class SagaReplyConsumer {
     await this.channel.addSetup(async (ch: ConfirmChannel) => {
       await ch.consume(QUEUE_CONFIG.SAGA_REPLY.queue, async (msg) => {
         if (!msg) return;
-        
+
         try {
           const rawReply = JSON.parse(msg.content.toString());
           const reply = SagaReplySchema.parse(rawReply);
-          
+
           await handler(reply);
 
           ch.ack(msg);

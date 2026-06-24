@@ -46,11 +46,7 @@ describe('createConfirmationEmailHandler', () => {
     await handler(dto);
 
     expect(mailer.sendConfirmationEmail).toHaveBeenCalledOnce();
-    expect(mailer.sendConfirmationEmail).toHaveBeenCalledWith(
-      dto.to,
-      dto.repo,
-      dto.confirmToken,
-    );
+    expect(mailer.sendConfirmationEmail).toHaveBeenCalledWith(dto.to, dto.repo, dto.confirmToken);
 
     expect(sagaPublisher.publishSuccess).toHaveBeenCalledOnce();
     expect(sagaPublisher.publishSuccess).toHaveBeenCalledWith(dto.confirmToken);

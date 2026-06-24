@@ -40,7 +40,10 @@ vi.mock('@github-release-notification/shared', async (importOriginal) => {
     EXCHANGE_NAME: 'notifications',
     QUEUE_CONFIG: {
       CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
-      RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
+      RELEASE_NOTIFICATION: {
+        queue: 'send-release-notification',
+        routingKey: 'release-notification',
+      },
     },
   };
 });

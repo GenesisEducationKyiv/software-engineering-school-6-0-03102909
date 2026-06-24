@@ -19,7 +19,7 @@ app.use(
     autoLogging: {
       ignore: (req: import('http').IncomingMessage) => req.url === '/metrics',
     },
-  })
+  }),
 );
 app.use(metricsMiddleware);
 

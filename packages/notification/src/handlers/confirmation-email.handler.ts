@@ -4,9 +4,9 @@ import type { ConfirmationEmailDto } from '@github-release-notification/shared';
 import type { ISagaReplyPublisher } from '../messaging/saga-publisher.js';
 
 export function createConfirmationEmailHandler(
-  mailer: MailerService, 
-  sagaPublisher: ISagaReplyPublisher, 
-  logger: Logger
+  mailer: MailerService,
+  sagaPublisher: ISagaReplyPublisher,
+  logger: Logger,
 ) {
   return async (data: ConfirmationEmailDto) => {
     logger.info({ to: data.to }, 'processing confirmation email');

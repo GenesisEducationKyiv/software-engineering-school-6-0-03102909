@@ -10,7 +10,5 @@ export default defineConfig({
   },
   globalSetup: 'packages/api/tests/e2e/global-setup.ts',
   globalTeardown: 'packages/api/tests/e2e/global-teardown.ts',
-  projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
-  ],
+  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
 });

@@ -15,7 +15,7 @@ export class SagaReplyPublisher implements ISagaReplyPublisher {
       EXCHANGE_NAME,
       QUEUE_CONFIG.SAGA_REPLY.routingKey,
       createSuccessReply(confirmToken),
-      { persistent: true }
+      { persistent: true },
     );
   }
 
@@ -24,7 +24,7 @@ export class SagaReplyPublisher implements ISagaReplyPublisher {
       EXCHANGE_NAME,
       QUEUE_CONFIG.SAGA_REPLY.routingKey,
       createFailureReply(confirmToken, error),
-      { persistent: true }
+      { persistent: true },
     );
   }
 }

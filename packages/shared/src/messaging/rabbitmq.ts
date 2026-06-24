@@ -15,7 +15,11 @@ const QUEUE_CONFIG = {
 let connection: AmqpConnectionManager | undefined;
 let channel: ChannelWrapper | undefined;
 
-export async function connectRabbitMQ(url: string, logger: Logger, prefetch?: number): Promise<ChannelWrapper> {
+export async function connectRabbitMQ(
+  url: string,
+  logger: Logger,
+  prefetch?: number,
+): Promise<ChannelWrapper> {
   const log = logger.child({ module: 'rabbitmq' });
 
   connection = amqp.connect([url]);
@@ -32,9 +36,9 @@ export async function connectRabbitMQ(url: string, logger: Logger, prefetch?: nu
 
       await ch.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
       for (const { queue, routingKey } of Object.values(QUEUE_CONFIG)) {
-        await ch.assertQueue(queue, { 
+        await ch.assertQueue(queue, {
           durable: true,
-          deadLetterExchange: DLX_EXCHANGE
+          deadLetterExchange: DLX_EXCHANGE,
         });
         await ch.bindQueue(queue, EXCHANGE_NAME, routingKey);
       }
@@ -46,23 +50,29 @@ export async function connectRabbitMQ(url: string, logger: Logger, prefetch?: nu
   });
 
   await channel.waitForConnect();
-  
+
   return channel;
 }
 
 export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
   const log = logger.child({ module: 'rabbitmq' });
-  
+
   if (channel) {
-    try { await channel.close(); } 
-    catch (err) { log.warn({ err }, 'Error closing channel'); }
+    try {
+      await channel.close();
+    } catch (err) {
+      log.warn({ err }, 'Error closing channel');
+    }
   }
-  
+
   if (connection) {
-    try { await connection.close(); } 
-    catch (err) { log.warn({ err }, 'Error closing connection'); }
+    try {
+      await connection.close();
+    } catch (err) {
+      log.warn({ err }, 'Error closing connection');
+    }
   }
-  
+
   log.info('RabbitMQ manually disconnected');
 }
 
