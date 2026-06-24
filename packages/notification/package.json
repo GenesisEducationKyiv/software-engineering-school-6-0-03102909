@@ -1,5 +1,5 @@
 {
-  "name": "notification",
+  "name": "@github-release-notification/notification",
   "version": "1.0.0",
   "description": "",
   "license": "ISC",

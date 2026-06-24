@@ -13,6 +13,10 @@
   "license": "ISC",
   "author": "Sofiia Perkova",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
