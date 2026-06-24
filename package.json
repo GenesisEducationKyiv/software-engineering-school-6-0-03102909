@@ -18,9 +18,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "api": "npm run start --workspace=@github-release-notification/api",
+    "api:dev": "npm run dev --workspace=@github-release-notification/api",
+    "notification": "npm run start --workspace=@github-release-notification/notification",
+    "notification:dev": "npm run dev --workspace=@github-release-notification/notification",
+    "build": "npm run build --workspaces",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
