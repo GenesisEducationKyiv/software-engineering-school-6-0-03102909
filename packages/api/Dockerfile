@@ -12,7 +12,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npx prisma generate --schema packages/api/prisma/schema.prisma
-RUN npm run build -w @github-release-notification/api
+RUN npm run build
 RUN npx esbuild packages/api/prisma.config.ts --format=esm --platform=node --outfile=packages/api/prisma.config.js --packages=external
 
 FROM node:22-alpine AS production
