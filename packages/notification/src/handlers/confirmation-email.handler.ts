@@ -1,6 +1,6 @@
 import type { Logger } from '../config/logger.js';
 import type { MailerService } from '../services/mailer.service.js';
-import type { ConfirmationEmailDto } from '../dto/confirmation-email.dto.js';
+import type { ConfirmationEmailDto } from '@github-release-notification/shared';
 import type { ISagaReplyPublisher } from '../messaging/saga-publisher.js';
 
 export function createConfirmationEmailHandler(

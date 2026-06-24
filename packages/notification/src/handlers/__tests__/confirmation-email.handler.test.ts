@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createConfirmationEmailHandler } from '../confirmation-email.handler.js';
 import type { MailerService } from '../../services/mailer.service.js';
 import type { Logger } from '../../config/logger.js';
-import type { ConfirmationEmailDto } from '../../dto/confirmation-email.dto.js';
+import type { ConfirmationEmailDto } from '@github-release-notification/shared';
 import type { ISagaReplyPublisher } from '../../messaging/saga-publisher.js';
 
 function createMocks() {

@@ -1,18 +1,10 @@
 import type { ChannelWrapper } from 'amqp-connection-manager';
-import { EXCHANGE_NAME, QUEUE_CONFIG } from './messaging/rabbitmq.js';
-
-export interface ConfirmationEmailDto {
-  to: string;
-  repo: string;
-  confirmToken: string;
-}
-
-export interface ReleaseNotificationDto {
-  to: string;
-  repo: string;
-  tag: string;
-  unsubscribeToken: string;
-}
+import { 
+  EXCHANGE_NAME, 
+  QUEUE_CONFIG,
+  type ConfirmationEmailDto,
+  type ReleaseNotificationDto
+} from '@github-release-notification/shared';
 
 export interface IConfirmationEmailQueue {
   enqueueConfirmationEmail(data: ConfirmationEmailDto): Promise<void>;

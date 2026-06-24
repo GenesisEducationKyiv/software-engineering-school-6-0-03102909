@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@github-release-notification/shared": "1.0.0",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "amqp-connection-manager": "^5.0.0",

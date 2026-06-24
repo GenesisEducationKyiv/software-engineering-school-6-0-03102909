@@ -1,6 +1,6 @@
-import type { Logger } from '../../../shared/logger.js';
+import type { Logger } from '@github-release-notification/shared';
 import type { ISubscriptionRepository } from '../interfaces.js';
-import type { SagaReply } from '../validation/saga-reply.schema.js';
+import type { SagaReply } from '@github-release-notification/shared';
 
 export function createSubscriptionSagaHandler(
   subscriptionRepo: ISubscriptionRepository,

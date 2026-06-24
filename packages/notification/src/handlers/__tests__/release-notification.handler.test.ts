@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createReleaseNotificationHandler } from '../release-notification.handler.js';
 import type { MailerService } from '../../services/mailer.service.js';
 import type { Logger } from '../../config/logger.js';
-import type { ReleaseNotificationDto } from '../../dto/release-notification.dto.js';
+import type { ReleaseNotificationDto } from '@github-release-notification/shared';
 
 function createMocks() {
   const mailer = {

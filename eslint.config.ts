@@ -5,7 +5,14 @@ import prettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['node_modules', 'dist', 'build', '.env', 'coverage']),
+  globalIgnores([
+    '**/node_modules/**', 
+    '**/dist/**', 
+    '**/build/**', 
+    '.env', 
+    '**/coverage/**', 
+    'packages/api/src/generated/**'
+  ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

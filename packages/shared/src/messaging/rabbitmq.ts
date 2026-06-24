@@ -15,7 +15,7 @@ const QUEUE_CONFIG = {
 let connection: AmqpConnectionManager | undefined;
 let channel: ChannelWrapper | undefined;
 
-export async function connectRabbitMQ(url: string, logger: Logger): Promise<ChannelWrapper> {
+export async function connectRabbitMQ(url: string, logger: Logger, prefetch?: number): Promise<ChannelWrapper> {
   const log = logger.child({ module: 'rabbitmq' });
 
   connection = amqp.connect([url]);
@@ -37,6 +37,9 @@ export async function connectRabbitMQ(url: string, logger: Logger): Promise<Chan
           deadLetterExchange: DLX_EXCHANGE
         });
         await ch.bindQueue(queue, EXCHANGE_NAME, routingKey);
+      }
+      if (prefetch !== undefined) {
+        await ch.prefetch(prefetch);
       }
       log.info('RabbitMQ exchange and queues asserted');
     },

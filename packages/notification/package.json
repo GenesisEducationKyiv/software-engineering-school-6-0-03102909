@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@github-release-notification/shared": "1.0.0",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^2.0.1",
     "dotenv": "^17.4.2",

@@ -4,7 +4,7 @@ import { SubscriptionService } from './subscription.service.js';
 import type { ISubscriptionRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
 import type { IConfirmationEmailQueue } from '../../../shared/queue.js';
-import type { Logger } from '../../../shared/logger.js';
+import type { Logger } from '@github-release-notification/shared';
 
 function createMocks() {
   const subscriptionRepo: ISubscriptionRepository = {

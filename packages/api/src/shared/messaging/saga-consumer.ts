@@ -1,8 +1,11 @@
 import type { ConfirmChannel } from 'amqplib';
 import type { ChannelWrapper } from 'amqp-connection-manager';
-import type { Logger } from '../logger.js';
-import { QUEUE_CONFIG } from './rabbitmq.js';
-import { SagaReplySchema, type SagaReply } from '../../modules/subscription/validation/saga-reply.schema.js';
+import { 
+  type Logger,
+  QUEUE_CONFIG,
+  SagaReplySchema,
+  type SagaReply 
+} from '@github-release-notification/shared';
 
 export class SagaReplyConsumer {
   private readonly log: Logger;

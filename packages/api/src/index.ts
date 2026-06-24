@@ -4,7 +4,7 @@ import prisma from './db/prisma.js';
 import config from './config/env.js';
 import { registerScannerJob } from './modules/scanner/index.js';
 import { connectRedis, disconnectRedis } from './db/redis.js';
-import { connectRabbitMQ, disconnectRabbitMQ } from './shared/messaging/rabbitmq.js';
+import { connectRabbitMQ, disconnectRabbitMQ } from '@github-release-notification/shared';
 import { initContainer, scannerService } from './container.js';
 import { logger } from './di/infrastructure.js';
 

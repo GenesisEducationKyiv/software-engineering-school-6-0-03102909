@@ -4,8 +4,8 @@ import { connectRabbitMQ, consumeQueue, QUEUE_CONFIG } from './messaging/rabbitm
 import { SagaReplyPublisher } from './messaging/saga-publisher.js';
 import { createConfirmationEmailHandler } from './handlers/confirmation-email.handler.js';
 import { createReleaseNotificationHandler } from './handlers/release-notification.handler.js';
-import { ConfirmationEmailSchema } from './dto/confirmation-email.dto.js';
-import { ReleaseNotificationSchema } from './dto/release-notification.dto.js';
+import { ConfirmationEmailSchema } from '@github-release-notification/shared';
+import { ReleaseNotificationSchema } from '@github-release-notification/shared';
 
 export async function startWorker(rabbitmqUrl: string, prefetch: number, mailer: MailerService, logger: Logger): Promise<void> {
   const channel = await connectRabbitMQ(rabbitmqUrl, prefetch, logger);

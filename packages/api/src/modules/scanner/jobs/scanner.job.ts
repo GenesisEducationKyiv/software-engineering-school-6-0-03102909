@@ -1,6 +1,6 @@
 import { Cron } from 'croner';
 import type { ScannerService } from '../services/scanner.service.js';
-import type { Logger } from '../../../shared/logger.js';
+import type { Logger } from '@github-release-notification/shared';
 
 export function registerScannerJob(
   cronExpression: string,

@@ -1,6 +1,6 @@
 import type { Logger } from '../config/logger.js';
 import type { MailerService } from '../services/mailer.service.js';
-import type { ReleaseNotificationDto } from '../dto/release-notification.dto.js';
+import type { ReleaseNotificationDto } from '@github-release-notification/shared';
 
 export function createReleaseNotificationHandler(mailer: MailerService, logger: Logger) {
   return async (data: ReleaseNotificationDto) => {
