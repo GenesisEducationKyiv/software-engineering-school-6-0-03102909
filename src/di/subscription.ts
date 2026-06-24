@@ -5,7 +5,10 @@ import { logger } from './infrastructure.js';
 import { githubClient } from './github.js';
 import type { IConfirmationEmailQueue } from '../shared/queue.js';
 
+import { SubscriptionSaga } from '../modules/subscription/services/subscription.saga.js';
+
 export const subscriptionRepository = new SubscriptionRepository(prisma);
+export const subscriptionSaga = new SubscriptionSaga(subscriptionRepository, logger);
 
 export function createSubscriptionService(jobQueue: IConfirmationEmailQueue): SubscriptionService {
   return new SubscriptionService(

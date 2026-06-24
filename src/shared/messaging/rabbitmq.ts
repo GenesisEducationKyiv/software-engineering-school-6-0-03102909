@@ -13,7 +13,7 @@ const QUEUE_CONFIG = {
 } as const;
 
 let connection: AmqpConnectionManager | undefined;
-let channel: ChannelWrapper | undefined;
+export let channel: ChannelWrapper | undefined;
 
 export async function connectRabbitMQ(url: string, logger: Logger): Promise<ChannelWrapper> {
   const log = logger.child({ module: 'rabbitmq' });

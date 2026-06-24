@@ -78,6 +78,22 @@ export class SubscriptionRepository implements ISubscriptionRepository {
     return true;
   }
 
+  async removeByConfirmToken(token: string) {
+    const existing = await this.db.subscription.findUnique({
+      where: { confirmToken: token },
+    });
+
+    if (!existing) {
+      return false;
+    }
+
+    await this.db.subscription.delete({
+      where: { id: existing.id },
+    });
+
+    return true;
+  }
+
   async findByEmail(email: string) {
     return await this.db.subscription.findMany({
       where: {
