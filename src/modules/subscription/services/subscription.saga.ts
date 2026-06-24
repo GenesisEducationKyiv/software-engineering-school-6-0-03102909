@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import type { ConfirmChannel } from 'amqplib';
+import type { ChannelWrapper } from 'amqp-connection-manager';
 import type { Logger } from '../../../shared/logger.js';
 import type { ISubscriptionRepository } from '../interfaces.js';
-import { channel, QUEUE_CONFIG } from '../../../shared/messaging/rabbitmq.js';
+import { QUEUE_CONFIG } from '../../../shared/messaging/rabbitmq.js';
 
 export const SagaReplySchema = z.object({
   type: z.enum(['ConfirmationEmailSent', 'ConfirmationEmailFailed']),
@@ -19,15 +20,14 @@ export class SubscriptionSaga {
 
   constructor(
     private readonly subscriptionRepo: ISubscriptionRepository,
+    private readonly channel: ChannelWrapper,
     logger: Logger,
   ) {
     this.log = logger.child({ service: 'SubscriptionSaga' });
   }
 
   async startListening() {
-    if (!channel) return;
-    
-    await channel.addSetup(async (ch: ConfirmChannel) => {
+    await this.channel.addSetup(async (ch: ConfirmChannel) => {
       await ch.consume(QUEUE_CONFIG.SAGA_REPLY.queue, async (msg) => {
         if (!msg) return;
         
@@ -37,10 +37,15 @@ export class SubscriptionSaga {
           
           this.log.debug({ type: reply.type }, 'received saga reply');
 
+          if (reply.type === 'ConfirmationEmailSent') {
+            this.log.info({ confirmToken: reply.payload.confirmToken }, 'confirmation email sent successfully');
+          }
+
           if (reply.type === 'ConfirmationEmailFailed') {
-            this.log.info('email failed, running compensation');
+            this.log.info({ confirmToken: reply.payload.confirmToken, error: reply.payload.error }, 'email failed, running compensation');
             await this.subscriptionRepo.removeByConfirmToken(reply.payload.confirmToken);
           }
+
           ch.ack(msg);
         } catch (err) {
           this.log.error({ err }, 'failed to process saga reply');
