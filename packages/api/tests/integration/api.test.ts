@@ -20,26 +20,30 @@ vi.mock('../../src/db/redis.js', () => ({
   disconnectRedis: vi.fn(),
 }));
 
-vi.mock('../../src/shared/messaging/rabbitmq.js', () => ({
-  connectRabbitMQ: vi.fn().mockResolvedValue({
-    publish: vi.fn(),
-    consume: vi.fn(),
-    assertExchange: vi.fn(),
-    assertQueue: vi.fn(),
-    bindQueue: vi.fn(),
-    prefetch: vi.fn(),
-    ack: vi.fn(),
-    nack: vi.fn(),
-    on: vi.fn(),
-    close: vi.fn(),
-  }),
-  disconnectRabbitMQ: vi.fn(),
-  EXCHANGE_NAME: 'notifications',
-  QUEUE_CONFIG: {
-    CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
-    RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
-  },
-}));
+vi.mock('@github-release-notification/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@github-release-notification/shared')>();
+  return {
+    ...actual,
+    connectRabbitMQ: vi.fn().mockResolvedValue({
+      publish: vi.fn(),
+      consume: vi.fn(),
+      assertExchange: vi.fn(),
+      assertQueue: vi.fn(),
+      bindQueue: vi.fn(),
+      prefetch: vi.fn(),
+      ack: vi.fn(),
+      nack: vi.fn(),
+      on: vi.fn(),
+      close: vi.fn(),
+    }),
+    disconnectRabbitMQ: vi.fn(),
+    EXCHANGE_NAME: 'notifications',
+    QUEUE_CONFIG: {
+      CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
+      RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
+    },
+  };
+});
 
 vi.mock('../../src/shared/github/github.service.js', () => {
   class GithubService {
@@ -60,7 +64,7 @@ beforeAll(async () => {
   process.env['API_KEY'] = API_KEY;
   process.env['RESEND_API_KEY'] = 're_test_dummy_key';
 
-  const { connectRabbitMQ } = await import('../../src/shared/messaging/rabbitmq.js');
+  const { connectRabbitMQ } = await import('@github-release-notification/shared');
   const { initContainer } = await import('../../src/container.js');
 
   const mockChannel = await connectRabbitMQ('amqp://mock', console as any);

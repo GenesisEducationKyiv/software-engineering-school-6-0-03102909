@@ -1,7 +1,11 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { execSync } from 'child_process';
 import { Pool } from 'pg';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 let container: StartedPostgreSqlContainer;
 let pool: Pool;
 
@@ -9,9 +13,11 @@ export async function startPostgres(): Promise<string> {
   container = await new PostgreSqlContainer('postgres:17-alpine').start();
 
   const databaseUrl = container.getConnectionUri();
+  const apiDir = join(__dirname, '../../');
 
   execSync('npx prisma migrate deploy', {
     env: { ...process.env, DATABASE_URL: databaseUrl },
+    cwd: apiDir,
   });
 
   pool = new Pool({ connectionString: databaseUrl });

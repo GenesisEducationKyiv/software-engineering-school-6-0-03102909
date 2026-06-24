@@ -2,6 +2,11 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 import { execSync, type ChildProcess, spawn } from 'child_process';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let pgContainer: StartedPostgreSqlContainer;
 let redisContainer: StartedRedisContainer;
@@ -51,12 +56,14 @@ export default async function globalSetup() {
       response: { status: 200, jsonBody: { tag_name: 'v1.0.0' } },
     }),
   });
+  const apiDir = join(__dirname, '../../');
 
   execSync('npx prisma migrate deploy', {
     env: { ...process.env, DATABASE_URL: databaseUrl },
+    cwd: apiDir,
   });
 
-  appProcess = spawn('npx', ['tsx', 'src/index.ts'], {
+  appProcess = spawn('npx', ['tsx', join(apiDir, 'src/index.ts')], {
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl,
@@ -68,6 +75,7 @@ export default async function globalSetup() {
       RESEND_API_KEY: 're_test_dummy_key',
       NODE_ENV: 'test',
     },
+    cwd: apiDir,
     stdio: 'pipe',
     detached: true,
   });
