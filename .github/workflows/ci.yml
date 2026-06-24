@@ -26,7 +26,7 @@ jobs:
         run: npx prisma generate --schema packages/api/prisma/schema.prisma
 
       - name: Type Check
-        run: npm run build --workspaces
+        run: npm run build
 
   unit-tests:
     needs: lint

@@ -22,7 +22,7 @@
     "api:dev": "npm run dev --workspace=@github-release-notification/api",
     "notification": "npm run start --workspace=@github-release-notification/notification",
     "notification:dev": "npm run dev --workspace=@github-release-notification/notification",
-    "build": "npm run build --workspaces",
+    "build": "npm run build -w @github-release-notification/shared && npm run build -w @github-release-notification/api && npm run build -w @github-release-notification/notification",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
