@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
   test: {
@@ -6,5 +7,8 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 120_000,
     pool: 'forks',
+    alias: {
+      '@github-release-notification/shared': resolve(__dirname, 'packages/shared/src'),
+    },
   },
 });
