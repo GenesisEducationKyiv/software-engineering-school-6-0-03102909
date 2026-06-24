@@ -11,7 +11,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npx prisma generate
+RUN npx prisma generate --schema packages/api/prisma/schema.prisma
 RUN npm run build -w @github-release-notification/api
 RUN npx esbuild packages/api/prisma.config.ts --format=esm --platform=node --outfile=packages/api/prisma.config.js --packages=external
 
@@ -38,4 +38,4 @@ USER node
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy --schema packages/api/prisma/schema.prisma && node packages/api/dist/index.js"]
+CMD ["sh", "-c", "cd packages/api && npx prisma migrate deploy && cd ../../ && node packages/api/dist/index.js"]
