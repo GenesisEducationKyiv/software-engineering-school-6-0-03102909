@@ -7,9 +7,9 @@ import { ConfirmationEmailSchema } from './dto/confirmation-email.dto.js';
 import { ReleaseNotificationSchema } from './dto/release-notification.dto.js';
 
 export async function startWorker(rabbitmqUrl: string, prefetch: number, mailer: MailerService, logger: Logger): Promise<void> {
-  await connectRabbitMQ(rabbitmqUrl, prefetch, logger);
+  const channel = await connectRabbitMQ(rabbitmqUrl, prefetch, logger);
 
-  const confirmationHandler = createConfirmationEmailHandler(mailer, logger);
+  const confirmationHandler = createConfirmationEmailHandler(mailer, channel, logger);
   const releaseHandler = createReleaseNotificationHandler(mailer, logger);
 
   await consumeQueue(QUEUE_CONFIG.CONFIRMATION_EMAIL.queue, ConfirmationEmailSchema, confirmationHandler, logger);

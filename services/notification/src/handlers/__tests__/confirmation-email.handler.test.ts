@@ -3,11 +3,17 @@ import { createConfirmationEmailHandler } from '../confirmation-email.handler.js
 import type { MailerService } from '../../services/mailer.service.js';
 import type { Logger } from '../../config/logger.js';
 import type { ConfirmationEmailDto } from '../../dto/confirmation-email.dto.js';
+import type { ChannelWrapper } from 'amqp-connection-manager';
+import { EXCHANGE_NAME, QUEUE_CONFIG } from '../../messaging/rabbitmq.js';
 
 function createMocks() {
   const mailer = {
     sendConfirmationEmail: vi.fn(),
   } as unknown as MailerService;
+
+  const channel = {
+    publish: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ChannelWrapper;
 
   const logger = {
     info: vi.fn(),
@@ -16,11 +22,12 @@ function createMocks() {
     child: vi.fn().mockReturnThis(),
   } as unknown as Logger;
 
-  return { mailer, logger };
+  return { mailer, channel, logger };
 }
 
 describe('createConfirmationEmailHandler', () => {
   let mailer: MailerService;
+  let channel: ChannelWrapper;
   let logger: Logger;
   let handler: (data: ConfirmationEmailDto) => Promise<void>;
 
@@ -31,11 +38,11 @@ describe('createConfirmationEmailHandler', () => {
   };
 
   beforeEach(() => {
-    ({ mailer, logger } = createMocks());
-    handler = createConfirmationEmailHandler(mailer, logger);
+    ({ mailer, channel, logger } = createMocks());
+    handler = createConfirmationEmailHandler(mailer, channel, logger);
   });
 
-  it('should call mailer.sendConfirmationEmail with correct arguments', async () => {
+  it('should send email and publish success saga reply', async () => {
     await handler(dto);
 
     expect(mailer.sendConfirmationEmail).toHaveBeenCalledOnce();
@@ -44,17 +51,39 @@ describe('createConfirmationEmailHandler', () => {
       dto.repo,
       dto.confirmToken,
     );
+
+    expect(channel.publish).toHaveBeenCalledOnce();
+    expect(channel.publish).toHaveBeenCalledWith(
+      EXCHANGE_NAME,
+      QUEUE_CONFIG.SAGA_REPLY.routingKey,
+      {
+        type: 'ConfirmationEmailSent',
+        payload: { confirmToken: dto.confirmToken },
+      },
+      { persistent: true },
+    );
   });
 
-  it('should throw and log error when mailer fails', async () => {
+  it('should publish failure saga reply when mailer fails and not throw', async () => {
     const error = new Error('send failed');
     vi.mocked(mailer.sendConfirmationEmail).mockRejectedValueOnce(error);
 
-    await expect(handler(dto)).rejects.toThrow('send failed');
+    await expect(handler(dto)).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalledWith(
       { err: error, to: dto.to },
       'failed to send confirmation email',
+    );
+
+    expect(channel.publish).toHaveBeenCalledOnce();
+    expect(channel.publish).toHaveBeenCalledWith(
+      EXCHANGE_NAME,
+      QUEUE_CONFIG.SAGA_REPLY.routingKey,
+      {
+        type: 'ConfirmationEmailFailed',
+        payload: { confirmToken: dto.confirmToken, error: 'send failed' },
+      },
+      { persistent: true },
     );
   });
 });
