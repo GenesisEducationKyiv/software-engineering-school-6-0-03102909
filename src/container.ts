@@ -16,7 +16,7 @@ export function initContainer(channel: ChannelWrapper): void {
   subscriptionService = createSubscriptionService(notificationQueue);
 
   const sagaConsumer = new SagaReplyConsumer(channel, logger);
-  sagaConsumer.startListening(subscriptionSagaHandler).catch((err: any) => {
+  sagaConsumer.startListening(subscriptionSagaHandler).catch((err: unknown) => {
     console.error('Failed to start subscription saga listener', err);
   });
 }
