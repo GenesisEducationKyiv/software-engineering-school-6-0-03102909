@@ -47,7 +47,9 @@ services:
       retries: 5
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
     restart: unless-stopped
     ports:
       - '${PORT:-3000}:3000'
@@ -74,7 +76,9 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
 
   notification:
-    build: ./services/notification
+    build:
+      context: .
+      dockerfile: packages/notification/Dockerfile
     restart: unless-stopped
     depends_on:
       db:
