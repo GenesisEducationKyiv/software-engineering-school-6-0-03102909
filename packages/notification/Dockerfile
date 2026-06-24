@@ -24,6 +24,7 @@ COPY --chown=node:node packages/shared/package.json ./packages/shared/
 RUN npm ci --omit=dev
 
 COPY --chown=node:node --from=build /app/packages/notification/dist ./packages/notification/dist
+COPY --chown=node:node --from=build /app/packages/shared/dist ./packages/shared/dist
 
 USER node
 

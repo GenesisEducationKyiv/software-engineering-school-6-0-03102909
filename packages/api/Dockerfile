@@ -30,6 +30,7 @@ RUN npm ci --omit=dev
 RUN npm install --no-save prisma
 
 COPY --chown=node:node --from=build /app/packages/api/dist ./packages/api/dist
+COPY --chown=node:node --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --chown=node:node --from=build /app/packages/api/prisma ./packages/api/prisma
 COPY --chown=node:node --from=build /app/packages/api/prisma.config.js ./packages/api/prisma.config.js
 COPY --chown=node:node --from=build /app/packages/api/public ./packages/api/public
