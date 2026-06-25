@@ -1,36 +1,17 @@
-import type { Logger } from './config/logger.js';
-import type { MailerService } from './services/mailer.service.js';
-import { connectRabbitMQ, consumeQueue, QUEUE_CONFIG } from './messaging/rabbitmq.js';
-import { SagaReplyPublisher } from './messaging/saga-publisher.js';
-import { createConfirmationEmailHandler } from './handlers/confirmation-email.handler.js';
-import { createReleaseNotificationHandler } from './handlers/release-notification.handler.js';
-import { ConfirmationEmailSchema } from '@github-release-notification/shared';
-import { ReleaseNotificationSchema } from '@github-release-notification/shared';
+import express from 'express';
+import { logger } from './container.js';
+import verifyEmailRoutes from './api/verify-email.routes.js';
+import { createErrorHandler, unknownEndpoint } from './api/error-handler.middleware.js';
 
-export async function startWorker(
-  rabbitmqUrl: string,
-  prefetch: number,
-  mailer: MailerService,
-  logger: Logger,
-): Promise<void> {
-  const channel = await connectRabbitMQ(rabbitmqUrl, prefetch, logger);
-  const sagaPublisher = new SagaReplyPublisher(channel);
+const app = express();
 
-  const confirmationHandler = createConfirmationEmailHandler(mailer, sagaPublisher, logger);
-  const releaseHandler = createReleaseNotificationHandler(mailer, logger);
+app.use(express.json());
 
-  await consumeQueue(
-    QUEUE_CONFIG.CONFIRMATION_EMAIL.queue,
-    ConfirmationEmailSchema,
-    confirmationHandler,
-    logger,
-  );
-  await consumeQueue(
-    QUEUE_CONFIG.RELEASE_NOTIFICATION.queue,
-    ReleaseNotificationSchema,
-    releaseHandler,
-    logger,
-  );
+app.use('/api', verifyEmailRoutes);
 
-  logger.info('RabbitMQ consumer started');
-}
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
+app.use(unknownEndpoint);
+app.use(createErrorHandler(logger));
+
+export default app;

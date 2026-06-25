@@ -7,6 +7,7 @@ config();
 export default {
   NODE_ENV: process.env['NODE_ENV'] ?? 'development',
   APP_URL: process.env['APP_URL'] ?? 'http://localhost:3000',
+  NOTIFICATION_PORT: parseInt(process.env['NOTIFICATION_PORT'] ?? '3100', 10),
   RABBITMQ_URL: process.env['RABBITMQ_URL'] ?? 'amqp://guest:guest@localhost:5672',
   RABBITMQ_PREFETCH: parseInt(process.env['RABBITMQ_PREFETCH'] ?? '10', 10),
   RESEND_API_KEY: process.env['RESEND_API_KEY'] ?? '',
