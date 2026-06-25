@@ -3,15 +3,7 @@ import disposableDomains from 'disposable-email-domains/index.json' with { type:
 import { z } from 'zod';
 import type { Logger } from '../config/logger.js';
 
-export interface EmailVerificationResult {
-  valid: boolean;
-  reason?: string;
-  checks: {
-    format: boolean;
-    mx: boolean;
-    disposable: boolean;
-  };
-}
+import type { EmailVerificationResult } from '@github-release-notification/shared';
 
 const emailSchema = z.email();
 const disposableSet = new Set<string>(disposableDomains);

@@ -3,6 +3,7 @@ import type { IGithubClient } from '../../../shared/github/index.js';
 import type { IConfirmationEmailQueue } from '../../../shared/queue.js';
 import type { Logger } from '@github-release-notification/shared';
 import { HttpError } from '../../../shared/errors/HttpError.js';
+import type { IEmailVerificationClient } from '../../../shared/email-verification.client.js';
 
 export class SubscriptionService {
   private readonly log: Logger;
@@ -11,12 +12,19 @@ export class SubscriptionService {
     private readonly subscriptionRepo: ISubscriptionRepository,
     private readonly githubClient: IGithubClient,
     private readonly jobQueue: IConfirmationEmailQueue,
+    private readonly emailVerificationClient: IEmailVerificationClient,
     logger: Logger,
   ) {
     this.log = logger.child({ service: 'SubscriptionService' });
   }
 
   async subscribe(email: string, repo: string) {
+    const verification = await this.emailVerificationClient.verifyEmail(email);
+    if (!verification.valid) {
+      this.log.warn({ email, reason: verification.reason }, 'email verification failed');
+      throw new HttpError(verification.reason || 'Invalid email address', 400);
+    }
+
     const [owner, name] = repo.split('/') as [string, string];
 
     await this.githubClient.validateRepository(owner, name);
