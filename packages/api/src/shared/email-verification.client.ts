@@ -1,3 +1,4 @@
+import { HttpError } from './errors/HttpError.js';
 import type { EmailVerificationResult } from '@github-release-notification/shared';
 
 export interface IEmailVerificationClient {
@@ -19,11 +20,7 @@ export class EmailVerificationClient implements IEmailVerificationClient {
       });
 
       if (!response.ok) {
-        return { 
-          valid: false, 
-          reason: 'Verification service unavailable', 
-          checks: defaultChecks 
-        };
+        throw new HttpError('Verification service unavailable', 503);
       }
 
       const data = await response.json() as EmailVerificationResult;
@@ -38,12 +35,9 @@ export class EmailVerificationClient implements IEmailVerificationClient {
       }
 
       return result;
-    } catch (_err) {
-      return { 
-        valid: false, 
-        reason: 'Could not connect to verification service',
-        checks: defaultChecks,
-      };
+    } catch (err) {
+      if (err instanceof HttpError) throw err;
+      throw new HttpError('Could not connect to verification service', 503);
     }
   }
 }
