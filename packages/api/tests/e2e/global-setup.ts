@@ -13,6 +13,7 @@ let redisContainer: StartedRedisContainer;
 let wiremockContainer: StartedTestContainer;
 let rabbitmqContainer: StartedTestContainer;
 let appProcess: ChildProcess;
+let notificationProcess: ChildProcess;
 
 async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
   const start = Date.now();
@@ -36,26 +37,29 @@ export default async function globalSetup() {
 
   const databaseUrl = pgContainer.getConnectionUri();
   const redisUrl = redisContainer.getConnectionUrl();
-  const wiremockUrl = `http://${wiremockContainer.getHost()}:${wiremockContainer.getMappedPort(8080)}`;
-  const rabbitmqUrl = `amqp://${rabbitmqContainer.getHost()}:${rabbitmqContainer.getMappedPort(5672)}`;
+  const wmHost = wiremockContainer.getHost() === 'localhost' ? '127.0.0.1' : wiremockContainer.getHost();
+  const rmqHost = rabbitmqContainer.getHost() === 'localhost' ? '127.0.0.1' : rabbitmqContainer.getHost();
 
-  await fetch(`${wiremockUrl}/__admin/mappings`, {
+  const wiremockUrl = `http://${wmHost}:${wiremockContainer.getMappedPort(8080)}`;
+  const rabbitmqUrl = `amqp://${rmqHost}:${rabbitmqContainer.getMappedPort(5672)}`;
+
+  const res = await fetch(`${wiremockUrl}/__admin/mappings/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      request: { method: 'GET', url: '/repos/facebook/react' },
-      response: { status: 200, jsonBody: { owner: { login: 'facebook' }, name: 'react' } },
+      mappings: [
+        {
+          request: { method: 'GET', url: '/repos/facebook/react' },
+          response: { status: 200, jsonBody: { owner: { login: 'facebook' }, name: 'react' } },
+        },
+        {
+          request: { method: 'GET', url: '/repos/facebook/react/releases/latest' },
+          response: { status: 200, jsonBody: { tag_name: 'v1.0.0' } },
+        },
+      ],
     }),
   });
 
-  await fetch(`${wiremockUrl}/__admin/mappings`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      request: { method: 'GET', url: '/repos/facebook/react/releases/latest' },
-      response: { status: 200, jsonBody: { tag_name: 'v1.0.0' } },
-    }),
-  });
   const apiDir = join(__dirname, '../../');
 
   execSync('npx prisma migrate deploy', {
@@ -70,24 +74,32 @@ export default async function globalSetup() {
       REDIS_URL: redisUrl,
       RABBITMQ_URL: rabbitmqUrl,
       GITHUB_API_URL: wiremockUrl,
+      NOTIFICATION_SERVICE_URL: 'http://127.0.0.1:3100',
       PORT: '3099',
       API_KEY: 'test-api-key',
       RESEND_API_KEY: 're_test_dummy_key',
-      NODE_ENV: 'test',
     },
     cwd: apiDir,
     stdio: 'pipe',
     detached: true,
   });
 
-  appProcess.stderr?.on('data', (data: Buffer) => {
-    console.error(`[app stderr] ${data.toString()}`);
-  });
-  appProcess.stdout?.on('data', (data: Buffer) => {
-    console.log(`[app stdout] ${data.toString()}`);
+  const notificationDir = join(dirname(apiDir), 'notification');
+  notificationProcess = spawn('npx', ['tsx', join(notificationDir, 'src/index.ts')], {
+    env: {
+      ...process.env,
+      RABBITMQ_URL: rabbitmqUrl,
+      NOTIFICATION_PORT: '3100',
+      RESEND_API_KEY: 're_test_dummy_key',
+      NODE_ENV: 'test',
+    },
+    cwd: notificationDir,
+    stdio: 'pipe',
+    detached: true,
   });
 
-  await waitForServer('http://localhost:3099/metrics');
+  await waitForServer('http://127.0.0.1:3100/health');
+  await waitForServer('http://127.0.0.1:3099/metrics');
 }
 
 export async function globalTeardown() {
@@ -97,6 +109,15 @@ export async function globalTeardown() {
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
         console.error('failed to kill app process');
+      }
+    }
+  }
+  if (notificationProcess?.pid) {
+    try {
+      process.kill(-notificationProcess.pid, 'SIGKILL');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+        console.error('failed to kill notification process');
       }
     }
   }

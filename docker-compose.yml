@@ -74,7 +74,7 @@ services:
       SCAN_CRON: ${SCAN_CRON:-*/5 * * * *}
       API_KEY: ${API_KEY:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification:3100}
+      NOTIFICATION_SERVICE_URL: http://notification:${NOTIFICATION_PORT:-3100}
 
   notification:
     build:
