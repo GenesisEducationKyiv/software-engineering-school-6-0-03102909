@@ -43,7 +43,7 @@ export default async function globalSetup() {
   const wiremockUrl = `http://${wmHost}:${wiremockContainer.getMappedPort(8080)}`;
   const rabbitmqUrl = `amqp://${rmqHost}:${rabbitmqContainer.getMappedPort(5672)}`;
 
-  const res = await fetch(`${wiremockUrl}/__admin/mappings/import`, {
+  await fetch(`${wiremockUrl}/__admin/mappings/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
