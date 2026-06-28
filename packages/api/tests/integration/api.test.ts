@@ -56,6 +56,16 @@ vi.mock('../../src/shared/github/github.service.js', () => {
   return { GithubService, GithubApiError: class extends Error {} };
 });
 
+vi.mock('../../src/shared/email-verification.client.js', () => {
+  class EmailVerificationClient {
+    verifyEmail = vi.fn().mockResolvedValue({
+      valid: true,
+      checks: { format: true, mx: true, disposable: false },
+    });
+  }
+  return { EmailVerificationClient };
+});
+
 const API_KEY = 'test-api-key';
 
 let app: typeof import('../../src/app.js').default;
