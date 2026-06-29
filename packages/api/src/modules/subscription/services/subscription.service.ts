@@ -3,7 +3,7 @@ import type { IGithubClient } from '../../../shared/github/index.js';
 import type { IConfirmationEmailQueue } from '../../../shared/queue.js';
 import type { Logger } from '@github-release-notification/shared';
 import { HttpError } from '../../../shared/errors/HttpError.js';
-import type { IEmailVerificationClient } from '../../../shared/email-verification.client.js';
+import type { IEmailVerificationClient } from '../../../shared/email-verification/email-verification.interface.js';
 
 export class SubscriptionService {
   private readonly log: Logger;

@@ -1,9 +1,7 @@
-import { HttpError } from './errors/HttpError.js';
+import { HttpError } from '../errors/HttpError.js';
 import type { EmailVerificationResult } from '@github-release-notification/shared';
 
-export interface IEmailVerificationClient {
-  verifyEmail(email: string): Promise<EmailVerificationResult>;
-}
+import type { IEmailVerificationClient } from './email-verification.interface.js';
 
 export class EmailVerificationClient implements IEmailVerificationClient {
   constructor(private readonly baseUrl: string) {}
