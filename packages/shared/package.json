@@ -8,6 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.12.1",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^2.0.1",
     "pino": "^10.3.1",
