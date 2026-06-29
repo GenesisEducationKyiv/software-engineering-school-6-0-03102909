@@ -4,3 +4,4 @@ export * from './dto/confirmation-email.dto.js';
 export * from './dto/release-notification.dto.js';
 export * from './dto/saga-reply.dto.js';
 export * from './dto/email-verification.dto.js';
+export * from './grpc/emailverification/v1/email_verification.js';

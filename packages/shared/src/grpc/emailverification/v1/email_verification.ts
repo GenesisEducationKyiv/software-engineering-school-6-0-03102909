@@ -281,13 +281,8 @@ export const EmailChecks: MessageFns<EmailChecks> = {
   },
 };
 
-/**
- * Service for verifying email addresses before subscription.
- * Used by API Service (client) → Notification Service (server).
- */
 export type EmailVerificationServiceService = typeof EmailVerificationServiceService;
 export const EmailVerificationServiceService = {
-  /** Validates email format, checks MX records, and detects disposable domains. */
   verifyEmail: {
     path: "/emailverification.v1.EmailVerificationService/VerifyEmail" as const,
     requestStream: false as const,
@@ -300,12 +295,10 @@ export const EmailVerificationServiceService = {
 } as const;
 
 export interface EmailVerificationServiceServer extends UntypedServiceImplementation {
-  /** Validates email format, checks MX records, and detects disposable domains. */
   verifyEmail: handleUnaryCall<VerifyEmailRequest, VerifyEmailResponse>;
 }
 
 export interface EmailVerificationServiceClient extends Client {
-  /** Validates email format, checks MX records, and detects disposable domains. */
   verifyEmail(
     request: VerifyEmailRequest,
     callback: (error: ServiceError | null, response: VerifyEmailResponse) => void,
