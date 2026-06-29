@@ -75,6 +75,7 @@ services:
       API_KEY: ${API_KEY:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       NOTIFICATION_SERVICE_URL: http://notification:${NOTIFICATION_PORT:-3100}
+      NOTIFICATION_GRPC_URL: notification:${GRPC_PORT:-50051}
 
   notification:
     build:
@@ -83,6 +84,7 @@ services:
     restart: unless-stopped
     ports:
       - '${NOTIFICATION_PORT:-3100}:3100'
+      - '${GRPC_PORT:-50051}:50051'
     depends_on:
       db:
         condition: service_healthy
@@ -96,6 +98,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-password}@rabbitmq:5672
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NOTIFICATION_PORT: 3100
+      GRPC_PORT: 50051
 
   pgadmin:
     image: dpage/pgadmin4:latest

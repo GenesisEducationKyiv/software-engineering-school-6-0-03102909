@@ -26,6 +26,9 @@ RUN npm ci --omit=dev
 COPY --chown=node:node --from=build /app/packages/notification/dist ./packages/notification/dist
 COPY --chown=node:node --from=build /app/packages/shared/dist ./packages/shared/dist
 
+EXPOSE 3100
+EXPOSE 50051
+
 USER node
 
 CMD ["node", "packages/notification/dist/index.js"]
