@@ -46,6 +46,7 @@ export function createEmailVerificationGrpcHandlers(
 }
 
 export function startGrpcServer(
+  host: string,
   port: number,
   emailService: EmailVerificationService,
   logger: Logger,
@@ -59,7 +60,7 @@ export function startGrpcServer(
     );
 
     server.bindAsync(
-      `0.0.0.0:${port}`,
+      `${host}:${port}`,
       grpc.ServerCredentials.createInsecure(),
       (err, boundPort) => {
         if (err) {

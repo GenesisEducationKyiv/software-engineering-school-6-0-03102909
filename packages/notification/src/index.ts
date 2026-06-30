@@ -22,7 +22,7 @@ const server = app.listen(config.NOTIFICATION_PORT, () => {
 
 let grpcServer: Server | undefined;
 try {
-  grpcServer = await startGrpcServer(config.GRPC_PORT, emailVerificationService, logger);
+  grpcServer = await startGrpcServer(config.GRPC_HOST, config.GRPC_PORT, emailVerificationService, logger);
 } catch (err) {
   log.fatal({ err }, 'failed to start gRPC server');
   process.exit(1);
