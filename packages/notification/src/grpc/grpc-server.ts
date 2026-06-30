@@ -18,7 +18,7 @@ export function createEmailVerificationGrpcHandlers(
         if (!email || typeof email !== 'string') {
           callback({
             code: grpc.status.INVALID_ARGUMENT,
-            message: 'Missing or invalid "email" field',
+            details: 'Missing or invalid "email" field',
           });
           return;
         }
@@ -38,7 +38,7 @@ export function createEmailVerificationGrpcHandlers(
         log.error({ err }, 'Error in gRPC verifyEmail handler');
         callback({
           code: grpc.status.INTERNAL,
-          message: 'Internal server error during email verification',
+          details: 'Internal server error during email verification',
         });
       }
     },
