@@ -64,6 +64,6 @@ describe('createConfirmationEmailHandler', () => {
     );
 
     expect(sagaPublisher.publishFailure).toHaveBeenCalledOnce();
-    expect(sagaPublisher.publishFailure).toHaveBeenCalledWith(dto.confirmToken, 'send failed');
+    expect(sagaPublisher.publishFailure).toHaveBeenCalledWith(dto.confirmToken, error);
   });
 });

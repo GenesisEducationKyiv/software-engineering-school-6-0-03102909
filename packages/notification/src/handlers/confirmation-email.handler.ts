@@ -14,7 +14,7 @@ export function createConfirmationEmailHandler(
       await mailer.sendConfirmationEmail(data.to, data.repo, data.confirmToken);
     } catch (err) {
       logger.error({ err, to: data.to }, 'failed to send confirmation email');
-      await sagaPublisher.publishFailure(data.confirmToken, (err as Error).message);
+      await sagaPublisher.publishFailure(data.confirmToken, err);
       logger.info({ to: data.to }, 'saga failure reply published');
       return;
     }
