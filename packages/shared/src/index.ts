@@ -1,3 +1,4 @@
+export * from './errors.js';
 export * from './logger.js';
 export * from './messaging/rabbitmq.js';
 export * from './messaging/retry.js';

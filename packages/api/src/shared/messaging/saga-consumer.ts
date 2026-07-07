@@ -8,6 +8,8 @@ import {
   processWithRetry,
   type RetryPolicy,
   DEFAULT_RETRY_POLICY,
+  safeAck,
+  safeNack,
 } from '@github-release-notification/shared';
 
 export class SagaReplyConsumer {
@@ -34,7 +36,7 @@ export class SagaReplyConsumer {
           reply = SagaReplySchema.parse(rawReply);
         } catch (err) {
           this.log.error({ err }, 'failed to parse/validate saga reply');
-          ch.nack(msg, false, false);
+          safeNack(ch, msg as any, this.log);
           return;
         }
 
@@ -47,9 +49,9 @@ export class SagaReplyConsumer {
         );
 
         if (success) {
-          ch.ack(msg);
+          safeAck(ch, msg as any, this.log);
         } else {
-          ch.nack(msg, false, false);
+          safeNack(ch, msg as any, this.log);
         }
       });
     });

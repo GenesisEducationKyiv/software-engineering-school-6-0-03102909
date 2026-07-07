@@ -1,7 +1,6 @@
 import type { ChannelWrapper } from 'amqp-connection-manager';
-import { EXCHANGE_NAME, QUEUE_CONFIG } from './rabbitmq.js';
+import { QUEUE_CONFIG, EXCHANGE_NAME, toError } from '@github-release-notification/shared';
 import { createSuccessReply, createFailureReply } from '@github-release-notification/shared';
-import { toError } from '../errors.js';
 
 export interface ISagaReplyPublisher {
   publishSuccess(confirmToken: string): Promise<void>;

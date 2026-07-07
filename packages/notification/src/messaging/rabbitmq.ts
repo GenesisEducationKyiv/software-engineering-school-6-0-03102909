@@ -11,6 +11,8 @@ import {
   processWithRetry,
   type RetryPolicy,
   DEFAULT_RETRY_POLICY,
+  safeAck,
+  safeNack,
 } from '@github-release-notification/shared';
 import type { ChannelWrapper } from 'amqp-connection-manager';
 
@@ -30,28 +32,6 @@ export async function connectRabbitMQ(
 export async function disconnectRabbitMQ(logger: Logger) {
   await disconnectSharedRabbitMQ(logger);
   channel = undefined;
-}
-
-
-
-function safeAck(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
-  try {
-    ch.ack(msg);
-  } catch (err) {
-    if ((err as Error).message !== 'Channel closed') {
-      logger.warn({ err }, 'Failed to acknowledge message');
-    }
-  }
-}
-
-function safeNack(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
-  try {
-    ch.nack(msg, false, false);
-  } catch (err) {
-    if ((err as Error).message !== 'Channel closed') {
-      logger.warn({ err }, 'Failed to negative-acknowledge message');
-    }
-  }
 }
 
 export async function consumeQueue<T>(
