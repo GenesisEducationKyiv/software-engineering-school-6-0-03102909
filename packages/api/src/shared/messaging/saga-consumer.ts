@@ -1,4 +1,4 @@
-import type { ConfirmChannel } from 'amqplib';
+import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import type { ChannelWrapper } from 'amqp-connection-manager';
 import {
   type Logger,
@@ -27,7 +27,7 @@ export class SagaReplyConsumer {
     retryPolicy: RetryPolicy = DEFAULT_RETRY_POLICY,
   ) {
     await this.channel.addSetup(async (ch: ConfirmChannel) => {
-      await ch.consume(QUEUE_CONFIG.SAGA_REPLY.queue, async (msg) => {
+      await ch.consume(QUEUE_CONFIG.SAGA_REPLY.queue, async (msg: ConsumeMessage | null) => {
         if (!msg) return;
 
         let reply: SagaReply;
@@ -36,7 +36,7 @@ export class SagaReplyConsumer {
           reply = SagaReplySchema.parse(rawReply);
         } catch (err) {
           this.log.error({ err }, 'failed to parse/validate saga reply');
-          safeNack(ch, msg as any, this.log);
+          safeNack(ch, msg, this.log);
           return;
         }
 
@@ -49,9 +49,9 @@ export class SagaReplyConsumer {
         );
 
         if (success) {
-          safeAck(ch, msg as any, this.log);
+          safeAck(ch, msg, this.log);
         } else {
-          safeNack(ch, msg as any, this.log);
+          safeNack(ch, msg, this.log);
         }
       });
     });
