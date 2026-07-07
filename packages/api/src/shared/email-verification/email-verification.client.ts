@@ -28,7 +28,7 @@ export class EmailVerificationClient implements IEmailVerificationClient {
             throw new HttpError('Resource not found', 404);
           case 503:
           case 504:
-            throw new HttpError('Verification service unavailable', response.status);
+            throw new HttpError('Verification service unavailable', 500);
           default:
             throw new HttpError('Internal server error communicating with verification service', response.status);
         }
