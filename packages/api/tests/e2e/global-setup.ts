@@ -27,14 +27,12 @@ async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
 }
 
 export default async function globalSetup() {
-  pgContainer = await new PostgreSqlContainer('postgres:17-alpine').start();
-  redisContainer = await new RedisContainer('redis:7-alpine').start();
-  wiremockContainer = await new GenericContainer('wiremock/wiremock:latest')
-    .withExposedPorts(8080)
-    .start();
-  rabbitmqContainer = await new GenericContainer('rabbitmq:3-alpine')
-    .withExposedPorts(5672)
-    .start();
+  [pgContainer, redisContainer, wiremockContainer, rabbitmqContainer] = await Promise.all([
+    new PostgreSqlContainer('postgres:17-alpine').start(),
+    new RedisContainer('redis:7-alpine').start(),
+    new GenericContainer('wiremock/wiremock:latest').withExposedPorts(8080).start(),
+    new GenericContainer('rabbitmq:3-alpine').withExposedPorts(5672).start(),
+  ]);
 
   const databaseUrl = pgContainer.getConnectionUri();
   const redisUrl = redisContainer.getConnectionUrl();
@@ -99,8 +97,10 @@ export default async function globalSetup() {
     detached: true,
   });
 
-  await waitForServer('http://127.0.0.1:3100/health');
-  await waitForServer('http://127.0.0.1:3099/metrics');
+  await Promise.all([
+    waitForServer('http://127.0.0.1:3100/health'),
+    waitForServer('http://127.0.0.1:3099/metrics'),
+  ]);
 }
 
 export async function globalTeardown() {
@@ -122,8 +122,10 @@ export async function globalTeardown() {
       }
     }
   }
-  if (rabbitmqContainer) await rabbitmqContainer.stop();
-  if (wiremockContainer) await wiremockContainer.stop();
-  if (redisContainer) await redisContainer.stop();
-  if (pgContainer) await pgContainer.stop();
+  await Promise.all([
+    rabbitmqContainer?.stop(),
+    wiremockContainer?.stop(),
+    redisContainer?.stop(),
+    pgContainer?.stop(),
+  ]);
 }
