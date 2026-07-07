@@ -78,12 +78,12 @@ export class SubscriptionRepository implements ISubscriptionRepository {
     return true;
   }
 
-  async removeByConfirmToken(token: string) {
+  async removePendingByConfirmToken(token: string) {
     const existing = await this.db.subscription.findUnique({
       where: { confirmToken: token },
     });
 
-    if (!existing) {
+    if (!existing || existing.isConfirmed) {
       return false;
     }
 

@@ -23,7 +23,7 @@ export function createSubscriptionSagaHandler(
         { confirmToken: reply.payload.confirmToken, error: reply.payload.error },
         'email failed, running compensation',
       );
-      await subscriptionRepo.removeByConfirmToken(reply.payload.confirmToken);
+      await subscriptionRepo.removePendingByConfirmToken(reply.payload.confirmToken);
     }
   };
 }
