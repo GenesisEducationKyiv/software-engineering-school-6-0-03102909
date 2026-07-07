@@ -29,25 +29,32 @@ export async function disconnectRabbitMQ(logger: Logger) {
   channel = undefined;
 }
 
+export interface RetryPolicy {
+  maxAttempts: number;
+  delayMs: number;
+}
+
+const DEFAULT_RETRY_POLICY: RetryPolicy = { maxAttempts: 3, delayMs: 1000 };
+
 async function processMessageWithRetry<T>(
   data: T,
   handler: (data: T) => Promise<void>,
   queueName: string,
   logger: Logger,
+  retry: RetryPolicy,
 ): Promise<boolean> {
   let attempts = 0;
-  const maxAttempts = 3;
-  while (attempts < maxAttempts) {
+  while (attempts < retry.maxAttempts) {
     attempts++;
     try {
       await handler(data);
       return true;
     } catch (err) {
-      if (attempts >= maxAttempts) {
+      if (attempts >= retry.maxAttempts) {
         logger.error({ err, queue: queueName }, 'Handler failed after retries');
       } else {
         logger.warn({ err, queue: queueName, attempt: attempts }, 'Handler failed, retrying...');
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, retry.delayMs));
       }
     }
   }
@@ -79,6 +86,7 @@ export async function consumeQueue<T>(
   schema: z.ZodType<T>,
   handler: (data: T) => Promise<void>,
   logger: Logger,
+  retryPolicy: RetryPolicy = DEFAULT_RETRY_POLICY,
 ): Promise<void> {
   const currentChannel = channel;
   if (!currentChannel) throw new Error('Channel not initialized');
@@ -97,7 +105,7 @@ export async function consumeQueue<T>(
 
       let success = false;
       if (parsedData !== undefined) {
-        success = await processMessageWithRetry(parsedData, handler, queueName, logger);
+        success = await processMessageWithRetry(parsedData, handler, queueName, logger, retryPolicy);
       }
 
       if (success) {
