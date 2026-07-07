@@ -4,7 +4,10 @@ import type { EmailVerificationResult } from '@github-release-notification/share
 import type { IEmailVerificationClient } from './email-verification.interface.js';
 
 export class EmailVerificationClient implements IEmailVerificationClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly timeoutMs: number,
+  ) {}
 
   async verifyEmail(email: string): Promise<EmailVerificationResult> {
     const defaultChecks = { format: false, mx: false, disposable: false };
@@ -14,7 +17,7 @@ export class EmailVerificationClient implements IEmailVerificationClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
 
       if (!response.ok) {
