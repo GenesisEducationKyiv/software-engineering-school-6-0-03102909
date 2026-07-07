@@ -18,7 +18,17 @@ export class EmailVerificationClient implements IEmailVerificationClient {
       });
 
       if (!response.ok) {
-        throw new HttpError('Verification service unavailable', 503);
+        switch (response.status) {
+          case 400:
+            throw new HttpError('Invalid argument', 400);
+          case 404:
+            throw new HttpError('Resource not found', 404);
+          case 503:
+          case 504:
+            throw new HttpError('Verification service unavailable', response.status);
+          default:
+            throw new HttpError('Internal server error communicating with verification service', response.status);
+        }
       }
 
       const data = await response.json() as EmailVerificationResult;
