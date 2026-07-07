@@ -10,13 +10,17 @@ import { logger } from './di/infrastructure.js';
 export let scannerService: ScannerService;
 export let subscriptionService: SubscriptionService;
 
-export function initContainer(channel: ChannelWrapper): void {
+export async function initContainer(channel: ChannelWrapper): Promise<void> {
   const notificationQueue = createNotificationQueue(channel);
   scannerService = createScannerService(notificationQueue);
   subscriptionService = createSubscriptionService(notificationQueue);
 
   const sagaConsumer = new SagaReplyConsumer(channel, logger);
-  sagaConsumer.startListening(subscriptionSagaHandler).catch((err: unknown) => {
-    console.error('Failed to start subscription saga listener', err);
-  });
+  
+  try {
+    await sagaConsumer.startListening(subscriptionSagaHandler);
+  } catch (err) {
+    logger.error({ err }, 'Failed to start subscription saga listener');
+    throw err;
+  }
 }

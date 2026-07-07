@@ -81,7 +81,7 @@ beforeAll(async () => {
   const { initContainer } = await import('../../src/container.js');
 
   const mockChannel = await connectRabbitMQ('amqp://mock', console as any);
-  initContainer(mockChannel);
+  await initContainer(mockChannel);
 
   const appModule = await import('../../src/app.js');
   app = appModule.default;

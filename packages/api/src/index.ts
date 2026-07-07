@@ -16,7 +16,7 @@ log.info('database connected');
 await connectRedis();
 
 const channel = await connectRabbitMQ(config.RABBITMQ_URL, logger);
-initContainer(channel);
+await initContainer(channel);
 
 const scannerJob = registerScannerJob(config.SCAN_CRON, scannerService, logger);
 
