@@ -4,6 +4,7 @@ import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 import { execSync, type ChildProcess, spawn } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from '../../src/di/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,7 +109,7 @@ export async function globalTeardown() {
       process.kill(-appProcess.pid, 'SIGKILL');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
-        console.error('failed to kill app process');
+        logger.error({ err }, 'failed to kill app process');
       }
     }
   }
@@ -117,7 +118,7 @@ export async function globalTeardown() {
       process.kill(-notificationProcess.pid, 'SIGKILL');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
-        console.error('failed to kill notification process');
+        logger.error({ err }, 'failed to kill notification process');
       }
     }
   }
