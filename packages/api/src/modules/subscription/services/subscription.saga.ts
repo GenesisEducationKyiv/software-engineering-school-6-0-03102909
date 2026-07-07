@@ -23,7 +23,13 @@ export function createSubscriptionSagaHandler(
         { confirmToken: reply.payload.confirmToken, error: reply.payload.error },
         'email failed, running compensation',
       );
-      await subscriptionRepo.removePendingByConfirmToken(reply.payload.confirmToken);
+      const removed = await subscriptionRepo.removePendingByConfirmToken(reply.payload.confirmToken);
+      if (!removed) {
+        log.warn(
+          { confirmToken: reply.payload.confirmToken },
+          'compensation failed: pending subscription not found',
+        );
+      }
     }
   };
 }
