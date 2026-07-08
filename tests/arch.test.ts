@@ -46,6 +46,21 @@ describe('architecture boundaries', () => {
       const violations = await shouldNotDepend(apiTsConfig, 'repositories', 'api');
       expect(violations).toEqual([]);
     });
+
+    it('repositories should not depend on services', async () => {
+      const violations = await shouldNotDepend(apiTsConfig, 'repositories', 'services');
+      expect(violations).toEqual([]);
+    });
+
+    it('presentation (api) should not bypass services to reach repositories', async () => {
+      const violations = await shouldNotDepend(apiTsConfig, 'api', 'repositories');
+      expect(violations).toEqual([]);
+    });
+
+    it('presentation (api) should not depend on db', async () => {
+      const violations = await shouldNotDepend(apiTsConfig, 'api', 'db');
+      expect(violations).toEqual([]);
+    });
   });
 
   describe('notification layer independence', () => {
@@ -61,6 +76,11 @@ describe('architecture boundaries', () => {
 
     it('services should not depend on handlers', async () => {
       const violations = await shouldNotDepend(notificationTsConfig, 'services', 'handlers');
+      expect(violations).toEqual([]);
+    });
+
+    it('services should not depend on presentation (api)', async () => {
+      const violations = await shouldNotDepend(notificationTsConfig, 'services', 'api');
       expect(violations).toEqual([]);
     });
   });
