@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+  },
+  "include": [
+    "packages/api/src/**/*",
+    "packages/notification/src/**/*",
+    "packages/shared/src/**/*",
+  ],
+  "exclude": ["**/__tests__/**", "**/generated/**"],
+}

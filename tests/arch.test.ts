@@ -1,17 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { filesOfProject } from 'tsarch';
+import { filesOfProject, slicesOfProject } from 'tsarch';
 import * as path from 'path';
 
 const apiTsConfig = path.join(__dirname, '../packages/api/tsconfig.json');
 const notificationTsConfig = path.join(__dirname, '../packages/notification/tsconfig.json');
-const sharedTsConfig = path.join(__dirname, '../packages/shared/tsconfig.json');
+const monorepoTsConfig = path.join(__dirname, '../tsconfig.arch.json');
 
-const shouldNotDepend = async (config: string, inFolder: string, onFolder: string) => {
+const shouldNotDepend = async (config: string, from: string, to: string) => {
   const violations = await filesOfProject(config)
-    .inFolder(inFolder)
+    .inFolder(from)
     .shouldNot()
     .dependOnFiles()
-    .inFolder(onFolder)
+    .inFolder(to)
+    .check();
+  return violations;
+};
+
+const shouldNotCrossDepend = async (from: string, to: string) => {
+  const violations = await slicesOfProject(monorepoTsConfig)
+    .definedBy('packages/(**)/')
+    .shouldNot()
+    .containDependency(from, to)
     .check();
   return violations;
 };
@@ -58,22 +67,22 @@ describe('architecture boundaries', () => {
 
   describe('cross-package isolation', () => {
     it('api package should not depend on notification package', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'packages/api', 'packages/notification');
+      const violations = await shouldNotCrossDepend('api', 'notification');
       expect(violations).toEqual([]);
     });
 
     it('notification package should not depend on api package', async () => {
-      const violations = await shouldNotDepend(notificationTsConfig, 'packages/notification', 'packages/api');
+      const violations = await shouldNotCrossDepend('notification', 'api');
       expect(violations).toEqual([]);
     });
 
     it('shared package should not depend on api package', async () => {
-      const violations = await shouldNotDepend(sharedTsConfig, 'packages/shared', 'packages/api');
+      const violations = await shouldNotCrossDepend('shared', 'api');
       expect(violations).toEqual([]);
     });
 
     it('shared package should not depend on notification package', async () => {
-      const violations = await shouldNotDepend(sharedTsConfig, 'packages/shared', 'packages/notification');
+      const violations = await shouldNotCrossDepend('shared', 'notification');
       expect(violations).toEqual([]);
     });
   });
