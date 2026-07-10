@@ -14,15 +14,29 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            services/notification/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Notification Service dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: services/notification
 
       - name: Run Linter
         run: npm run lint
 
       - name: Generate Prisma Client
         run: npx prisma generate
+
+      - name: Type Check (Root)
+        run: npm run build
+
+      - name: Type Check (Notification Service)
+        run: npm run build
+        working-directory: services/notification
 
   unit-tests:
     needs: lint
@@ -36,15 +50,26 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            services/notification/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
         run: npx prisma generate
 
       - name: Run Unit Tests
         run: npm run test
+
+      - name: Install Notification Service dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: services/notification
+
+      - name: Run Notification Service Tests
+        run: npm run test
+        working-directory: services/notification
 
   integration-tests:
     needs: lint
@@ -58,9 +83,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            services/notification/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -80,9 +108,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            services/notification/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
         run: npx prisma generate

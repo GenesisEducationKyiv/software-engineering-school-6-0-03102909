@@ -29,6 +29,23 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     restart: unless-stopped
@@ -39,6 +56,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -46,6 +65,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
@@ -59,11 +79,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
       APP_URL: ${APP_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
       LOG_LEVEL: ${LOG_LEVEL:-info}
 
   pgadmin:
@@ -173,6 +196,7 @@ services:
 volumes:
   pgdata:
   redisdata:
+  rabbitmqdata:
   pgadmin_data:
   caddy_data:
   caddy_config:

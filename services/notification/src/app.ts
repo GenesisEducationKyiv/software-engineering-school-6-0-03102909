@@ -1,19 +1,19 @@
-import { PgBoss } from 'pg-boss';
 import type { Logger } from './config/logger.js';
 import type { MailerService } from './services/mailer.service.js';
+import { connectRabbitMQ, consumeQueue, QUEUE_CONFIG } from './messaging/rabbitmq.js';
 import { createConfirmationEmailHandler } from './handlers/confirmation-email.handler.js';
 import { createReleaseNotificationHandler } from './handlers/release-notification.handler.js';
+import { ConfirmationEmailSchema } from './dto/confirmation-email.dto.js';
+import { ReleaseNotificationSchema } from './dto/release-notification.dto.js';
 
-export async function startWorker(databaseUrl: string, mailer: MailerService, logger: Logger): Promise<PgBoss> {
-  const boss = new PgBoss(databaseUrl);
+export async function startWorker(rabbitmqUrl: string, prefetch: number, mailer: MailerService, logger: Logger): Promise<void> {
+  await connectRabbitMQ(rabbitmqUrl, prefetch, logger);
 
-  boss.on('error', (error: Error) => logger.error({ err: error }, 'pg-boss error'));
+  const confirmationHandler = createConfirmationEmailHandler(mailer, logger);
+  const releaseHandler = createReleaseNotificationHandler(mailer, logger);
 
-  await boss.start();
-  logger.info('pg-boss worker started');
+  await consumeQueue(QUEUE_CONFIG.CONFIRMATION_EMAIL.queue, ConfirmationEmailSchema, confirmationHandler, logger);
+  await consumeQueue(QUEUE_CONFIG.RELEASE_NOTIFICATION.queue, ReleaseNotificationSchema, releaseHandler, logger);
 
-  await boss.work('send-confirmation-email', createConfirmationEmailHandler(mailer, logger));
-  await boss.work('send-release-notification', createReleaseNotificationHandler(mailer, logger));
-
-  return boss;
+  logger.info('RabbitMQ consumer started');
 }

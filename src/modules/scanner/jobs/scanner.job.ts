@@ -1,26 +1,24 @@
-import type { PgBoss } from 'pg-boss';
-import config from '../../../config/env.js';
+import { Cron } from 'croner';
 import type { ScannerService } from '../services/scanner.service.js';
 import type { Logger } from '../../../shared/logger.js';
 
-const QUEUE_NAME = 'release-scanner';
-
-export async function registerScannerJob(
-  boss: PgBoss,
+export function registerScannerJob(
+  cronExpression: string,
   scannerService: ScannerService,
   logger: Logger,
-): Promise<void> {
+): Cron {
   const log = logger.child({ module: 'scanner-job' });
 
-  await boss.createQueue(QUEUE_NAME);
-
-  await boss.schedule(QUEUE_NAME, config.SCAN_CRON, {});
-
-  await boss.work(QUEUE_NAME, async () => {
+  const job = new Cron(cronExpression, async () => {
     log.debug('scanner job triggered from schedule');
-    await scannerService.scanAllRepositories();
-    log.debug('scanner job completed');
+    try {
+      await scannerService.scanAllRepositories();
+      log.debug('scanner job completed');
+    } catch (err) {
+      log.error({ err }, 'scanner job failed');
+    }
   });
 
-  log.info({ queue: QUEUE_NAME, cron: config.SCAN_CRON }, 'scanner job scheduled');
+  log.info({ cron: cronExpression }, 'scanner job scheduled');
+  return job;
 }

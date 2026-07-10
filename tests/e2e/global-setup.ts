@@ -6,6 +6,7 @@ import { execSync, type ChildProcess, spawn } from 'child_process';
 let pgContainer: StartedPostgreSqlContainer;
 let redisContainer: StartedRedisContainer;
 let wiremockContainer: StartedTestContainer;
+let rabbitmqContainer: StartedTestContainer;
 let appProcess: ChildProcess;
 
 async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
@@ -24,10 +25,14 @@ export default async function globalSetup() {
   wiremockContainer = await new GenericContainer('wiremock/wiremock:latest')
     .withExposedPorts(8080)
     .start();
+  rabbitmqContainer = await new GenericContainer('rabbitmq:3-alpine')
+    .withExposedPorts(5672)
+    .start();
 
   const databaseUrl = pgContainer.getConnectionUri();
   const redisUrl = redisContainer.getConnectionUrl();
   const wiremockUrl = `http://${wiremockContainer.getHost()}:${wiremockContainer.getMappedPort(8080)}`;
+  const rabbitmqUrl = `amqp://${rabbitmqContainer.getHost()}:${rabbitmqContainer.getMappedPort(5672)}`;
 
   await fetch(`${wiremockUrl}/__admin/mappings`, {
     method: 'POST',
@@ -56,6 +61,7 @@ export default async function globalSetup() {
       ...process.env,
       DATABASE_URL: databaseUrl,
       REDIS_URL: redisUrl,
+      RABBITMQ_URL: rabbitmqUrl,
       GITHUB_API_URL: wiremockUrl,
       PORT: '3099',
       API_KEY: 'test-api-key',
@@ -80,9 +86,13 @@ export async function globalTeardown() {
   if (appProcess?.pid) {
     try {
       process.kill(-appProcess.pid, 'SIGKILL');
-      // eslint-disable-next-line no-empty
-    } catch {}
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+        console.error('failed to kill app process');
+      }
+    }
   }
+  if (rabbitmqContainer) await rabbitmqContainer.stop();
   if (wiremockContainer) await wiremockContainer.stop();
   if (redisContainer) await redisContainer.stop();
   if (pgContainer) await pgContainer.stop();

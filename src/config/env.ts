@@ -10,6 +10,7 @@ export default {
   GITHUB_CACHE_TTL: Number(process.env['GITHUB_CACHE_TTL']) || 600,
   API_KEY: process.env['API_KEY'] ?? '',
   REDIS_URL: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+  RABBITMQ_URL: process.env['RABBITMQ_URL'] ?? 'amqp://guest:guest@localhost:5672',
   SCAN_CRON: process.env['SCAN_CRON'] ?? '*/5 * * * *',
   LOG_LEVEL: process.env['LOG_LEVEL'] ?? 'info',
 };
