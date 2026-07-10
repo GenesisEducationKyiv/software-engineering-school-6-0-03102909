@@ -13,10 +13,16 @@
   "license": "ISC",
   "author": "Sofiia Perkova",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "api": "npm run start --workspace=@github-release-notification/api",
+    "api:dev": "npm run dev --workspace=@github-release-notification/api",
+    "notification": "npm run start --workspace=@github-release-notification/notification",
+    "notification:dev": "npm run dev --workspace=@github-release-notification/notification",
+    "build": "npm run build -w @github-release-notification/shared && npm run build -w @github-release-notification/api && npm run build -w @github-release-notification/notification",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -27,6 +33,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.71.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@testcontainers/postgresql": "^11.14.0",
@@ -49,6 +56,7 @@
     "prisma": "^7.7.0",
     "supertest": "^7.2.2",
     "testcontainers": "^11.14.0",
+    "ts-proto": "^2.11.9",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.1",
