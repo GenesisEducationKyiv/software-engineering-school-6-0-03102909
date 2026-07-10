@@ -9,6 +9,7 @@ export const DLQ_NAME = 'dead-letters';
 const QUEUE_CONFIG = {
   CONFIRMATION_EMAIL: { queue: 'send-confirmation-email', routingKey: 'confirmation-email' },
   RELEASE_NOTIFICATION: { queue: 'send-release-notification', routingKey: 'release-notification' },
+  SAGA_REPLY: { queue: 'saga-reply', routingKey: 'saga-reply' },
 } as const;
 
 let connection: AmqpConnectionManager | undefined;

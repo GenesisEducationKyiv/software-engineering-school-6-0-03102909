@@ -11,6 +11,7 @@ function createMocks() {
     createOrGet: vi.fn(),
     confirmToken: vi.fn(),
     removeByUnsubscribeToken: vi.fn(),
+    removeByConfirmToken: vi.fn(),
     findByEmail: vi.fn(),
     findConfirmedSubscribersByRepo: vi.fn(),
   };
