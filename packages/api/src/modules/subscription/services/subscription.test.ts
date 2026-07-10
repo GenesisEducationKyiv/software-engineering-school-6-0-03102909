@@ -5,6 +5,7 @@ import type { ISubscriptionRepository } from '../interfaces.js';
 import type { IGithubClient } from '../../../shared/github/index.js';
 import type { IConfirmationEmailQueue } from '../../../shared/queue.js';
 import type { Logger } from '@github-release-notification/shared';
+import type { IEmailVerificationClient } from '../../../shared/email-verification/email-verification.interface.js';
 
 function createMocks() {
   const subscriptionRepo: ISubscriptionRepository = {
@@ -25,6 +26,13 @@ function createMocks() {
     enqueueConfirmationEmail: vi.fn(),
   };
 
+  const emailVerificationClient: IEmailVerificationClient = {
+    verifyEmail: vi.fn().mockResolvedValue({ 
+      valid: true,
+      checks: { format: true, mx: true, disposable: false },
+    }),
+  };
+
   const mockLogger = {
     info: vi.fn(),
     warn: vi.fn(),
@@ -33,9 +41,15 @@ function createMocks() {
     child: vi.fn().mockReturnThis(),
   } as unknown as Logger;
 
-  const service = new SubscriptionService(subscriptionRepo, githubClient, jobQueue, mockLogger);
+  const service = new SubscriptionService(
+    subscriptionRepo,
+    githubClient,
+    jobQueue,
+    emailVerificationClient,
+    mockLogger,
+  );
 
-  return { subscriptionRepo, githubClient, jobQueue, service, mockLogger };
+  return { subscriptionRepo, githubClient, jobQueue, emailVerificationClient, service, mockLogger };
 }
 
 describe('SubscriptionService', () => {
@@ -45,7 +59,8 @@ describe('SubscriptionService', () => {
 
   describe('subscribe()', () => {
     it('should successfully create a subscription and enqueue a confirmation email', async () => {
-      const { subscriptionRepo, githubClient, jobQueue, service } = createMocks();
+      const { subscriptionRepo, githubClient, jobQueue, emailVerificationClient, service } =
+        createMocks();
 
       const mockEmail = 'test@example.com';
       const mockRepo = 'owner/repo';
@@ -61,6 +76,7 @@ describe('SubscriptionService', () => {
       const result = await service.subscribe(mockEmail, mockRepo);
 
       expect(result).toEqual(mockSubscription);
+      expect(emailVerificationClient.verifyEmail).toHaveBeenCalledWith(mockEmail);
       expect(githubClient.validateRepository).toHaveBeenCalledWith('owner', 'repo');
       expect(githubClient.getLatestRelease).toHaveBeenCalledWith('owner', 'repo');
       expect(subscriptionRepo.createOrGet).toHaveBeenCalledWith(
@@ -102,6 +118,22 @@ describe('SubscriptionService', () => {
         'Not found on GitHub',
       );
       expect(subscriptionRepo.createOrGet).not.toHaveBeenCalled();
+    });
+
+    it('should throw a 400 error if email verification fails', async () => {
+      const { emailVerificationClient, githubClient, service } = createMocks();
+
+      (emailVerificationClient.verifyEmail as any).mockResolvedValue({
+        valid: false,
+        reason: 'Disposable email',
+        checks: { format: true, mx: true, disposable: true },
+      });
+
+      await expect(service.subscribe('test@example.com', 'owner/repo')).rejects.toThrow(HttpError);
+      await expect(service.subscribe('test@example.com', 'owner/repo')).rejects.toThrow(
+        'Disposable email',
+      );
+      expect(githubClient.validateRepository).not.toHaveBeenCalled();
     });
   });
 

@@ -13,4 +13,7 @@ export default {
   RABBITMQ_URL: process.env['RABBITMQ_URL'] ?? 'amqp://guest:guest@localhost:5672',
   SCAN_CRON: process.env['SCAN_CRON'] ?? '*/5 * * * *',
   LOG_LEVEL: process.env['LOG_LEVEL'] ?? 'info',
+  NOTIFICATION_SERVICE_URL: process.env['NOTIFICATION_SERVICE_URL'] ?? 'http://localhost:3100',
+  NOTIFICATION_GRPC_URL: process.env['NOTIFICATION_GRPC_URL'] ?? 'localhost:50051',
+  NOTIFICATION_GRPC_TIMEOUT_MS: Number(process.env['NOTIFICATION_GRPC_TIMEOUT_MS']) || 5000,
 };

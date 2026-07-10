@@ -33,6 +33,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.71.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@testcontainers/postgresql": "^11.14.0",
@@ -55,6 +56,7 @@
     "prisma": "^7.7.0",
     "supertest": "^7.2.2",
     "testcontainers": "^11.14.0",
+    "ts-proto": "^2.11.9",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.1",
