@@ -36,8 +36,8 @@ services:
       - '5672:5672'
       - '15672:15672'
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
     volumes:
       - rabbitmqdata:/var/lib/rabbitmq
     healthcheck:
@@ -47,7 +47,9 @@ services:
       retries: 5
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
     restart: unless-stopped
     ports:
       - '${PORT:-3000}:3000'
@@ -65,7 +67,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       REDIS_URL: redis://redis:6379
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-password}@rabbitmq:5672
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
@@ -74,7 +76,9 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
 
   notification:
-    build: ./services/notification
+    build:
+      context: .
+      dockerfile: packages/notification/Dockerfile
     restart: unless-stopped
     depends_on:
       db:
@@ -86,7 +90,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-github_notifications}
       APP_URL: ${APP_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-password}@rabbitmq:5672
       LOG_LEVEL: ${LOG_LEVEL:-info}
 
   pgadmin:

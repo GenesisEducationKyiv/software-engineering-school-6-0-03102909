@@ -14,29 +14,19 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            services/notification/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-
-      - name: Install Notification Service dependencies
-        run: npm ci --no-audit --no-fund
-        working-directory: services/notification
 
       - name: Run Linter
         run: npm run lint
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema packages/api/prisma/schema.prisma
 
-      - name: Type Check (Root)
+      - name: Type Check
         run: npm run build
-
-      - name: Type Check (Notification Service)
-        run: npm run build
-        working-directory: services/notification
 
   unit-tests:
     needs: lint
@@ -50,26 +40,16 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            services/notification/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema packages/api/prisma/schema.prisma
 
       - name: Run Unit Tests
         run: npm run test
-
-      - name: Install Notification Service dependencies
-        run: npm ci --no-audit --no-fund
-        working-directory: services/notification
-
-      - name: Run Notification Service Tests
-        run: npm run test
-        working-directory: services/notification
 
   integration-tests:
     needs: lint
@@ -83,15 +63,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            services/notification/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema packages/api/prisma/schema.prisma
 
       - name: Run Integration Tests
         run: npm run test:integration
@@ -108,18 +86,19 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            services/notification/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema packages/api/prisma/schema.prisma
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
+
+      - name: Build Shared Workspace
+        run: npm run build -w @github-release-notification/shared
 
       - name: Run E2E Tests
         run: npm run test:e2e
