@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
+import type { ConfirmChannel } from 'amqplib';
 import {
   startPostgres,
   stopPostgres,
@@ -35,6 +36,17 @@ vi.mock('@github-release-notification/shared', async (importOriginal) => {
       nack: vi.fn(),
       on: vi.fn(),
       close: vi.fn(),
+      addSetup: vi.fn().mockImplementation(async (setupFn: (ch: ConfirmChannel) => Promise<void>) => {
+        await setupFn({
+          consume: vi.fn(),
+          assertExchange: vi.fn(),
+          assertQueue: vi.fn(),
+          bindQueue: vi.fn(),
+          prefetch: vi.fn(),
+          ack: vi.fn(),
+          nack: vi.fn(),
+        } as unknown as ConfirmChannel);
+      }),
     }),
     disconnectRabbitMQ: vi.fn(),
     EXCHANGE_NAME: 'notifications',
@@ -44,6 +56,7 @@ vi.mock('@github-release-notification/shared', async (importOriginal) => {
         queue: 'send-release-notification',
         routingKey: 'release-notification',
       },
+      SAGA_REPLY: { queue: 'saga-reply', routingKey: 'saga-reply' },
     },
   };
 });
@@ -81,7 +94,7 @@ beforeAll(async () => {
   const { initContainer } = await import('../../src/container.js');
 
   const mockChannel = await connectRabbitMQ('amqp://mock', console as any);
-  initContainer(mockChannel);
+  await initContainer(mockChannel);
 
   const appModule = await import('../../src/app.js');
   app = appModule.default;

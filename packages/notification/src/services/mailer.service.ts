@@ -21,14 +21,23 @@ export class MailerService {
     this.log = logger.child({ service: 'MailerService' });
   }
 
-  private async sendMail(to: string, subject: string, html?: string, text?: string): Promise<void> {
-    const { error } = await this.resend.emails.send({
-      from: config.EMAIL_FROM,
-      to,
-      subject,
-      html: html ?? '',
-      text: text ?? '',
-    });
+  private async sendMail(options: {
+    to: string;
+    subject: string;
+    html?: string;
+    text?: string;
+    idempotencyKey?: string;
+  }): Promise<void> {
+    const { idempotencyKey, ...emailPayload } = options;
+    const { error } = await this.resend.emails.send(
+      {
+        from: config.EMAIL_FROM,
+        ...emailPayload,
+        html: emailPayload.html ?? '',
+        text: emailPayload.text ?? '',
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
     if (error) {
       throw new MailerError(`Resend API Error: ${error.message}`);
     }
@@ -36,7 +45,7 @@ export class MailerService {
 
   async sendConfirmationEmail(to: string, repo: string, confirmToken: string): Promise<void> {
     const { subject, html, text } = confirmationTemplate(repo, confirmToken);
-    await this.sendMail(to, subject, html, text);
+    await this.sendMail({ to, subject, html, text, idempotencyKey: confirmToken });
     this.log.info({ to, repo }, 'confirmation email sent');
   }
 
@@ -47,7 +56,7 @@ export class MailerService {
     unsubscribeToken: string,
   ): Promise<void> {
     const { subject, html, text } = releaseNotificationTemplate(repo, tag, unsubscribeToken);
-    await this.sendMail(to, subject, html, text);
+    await this.sendMail({ to, subject, html, text });
     this.log.info({ to, repo, tag }, 'release notification sent');
   }
 }

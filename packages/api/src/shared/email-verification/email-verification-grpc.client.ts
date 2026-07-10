@@ -36,10 +36,10 @@ export class GrpcEmailVerificationClient implements IEmailVerificationClient {
                 reject(new HttpError(err.details || 'Resource not found', 404));
                 break;
               case grpc.status.DEADLINE_EXCEEDED:
-                reject(new HttpError('Verification service timed out', 504));
+                reject(new HttpError('Verification service timed out', 500));
                 break;
               case grpc.status.UNAVAILABLE:
-                reject(new HttpError('Verification service unavailable', 503));
+                reject(new HttpError('Verification service unavailable', 500));
                 break;
               default:
                 reject(new HttpError('Internal server error communicating with verification service', 500));

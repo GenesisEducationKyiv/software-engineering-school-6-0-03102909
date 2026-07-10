@@ -54,8 +54,12 @@ export class EmailVerificationService {
     try {
       await dns.resolveMx(domain);
       return true;
-    } catch {
-      return false;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOTFOUND' || code === 'ENODATA') {
+        return false;
+      }
+      throw err;
     }
   }
 }

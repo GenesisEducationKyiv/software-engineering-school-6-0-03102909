@@ -23,7 +23,7 @@ export interface ISubscriptionRepository {
 
   removeByUnsubscribeToken(token: string): Promise<boolean>;
 
-  removeByConfirmToken(token: string): Promise<boolean>;
+  removePendingByConfirmToken(token: string): Promise<boolean>;
 
   findByEmail(email: string): Promise<SubscriptionWithRelations[]>;
 

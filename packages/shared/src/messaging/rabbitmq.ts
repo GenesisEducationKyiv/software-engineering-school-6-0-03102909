@@ -1,6 +1,7 @@
 import amqp, { type AmqpConnectionManager, type ChannelWrapper } from 'amqp-connection-manager';
-import type { ConfirmChannel } from 'amqplib';
+import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import type { Logger } from '../logger.js';
+import { toError } from '../errors.js';
 
 const EXCHANGE_NAME = 'notifications';
 export const DLX_EXCHANGE = 'notifications.dlx';
@@ -77,3 +78,23 @@ export async function disconnectRabbitMQ(logger: Logger): Promise<void> {
 }
 
 export { EXCHANGE_NAME, QUEUE_CONFIG };
+
+export function safeAck(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
+  try {
+    ch.ack(msg);
+  } catch (err) {
+    if (toError(err).message !== 'Channel closed') {
+      logger.warn({ err }, 'Failed to acknowledge message');
+    }
+  }
+}
+
+export function safeNack(ch: ConfirmChannel, msg: ConsumeMessage, logger: Logger) {
+  try {
+    ch.nack(msg, false, false);
+  } catch (err) {
+    if (toError(err).message !== 'Channel closed') {
+      logger.warn({ err }, 'Failed to negative-acknowledge message');
+    }
+  }
+}

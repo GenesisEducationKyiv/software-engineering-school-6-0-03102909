@@ -4,6 +4,7 @@ import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 import { execSync, type ChildProcess, spawn } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from '../../src/di/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,14 +27,12 @@ async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
 }
 
 export default async function globalSetup() {
-  pgContainer = await new PostgreSqlContainer('postgres:17-alpine').start();
-  redisContainer = await new RedisContainer('redis:7-alpine').start();
-  wiremockContainer = await new GenericContainer('wiremock/wiremock:latest')
-    .withExposedPorts(8080)
-    .start();
-  rabbitmqContainer = await new GenericContainer('rabbitmq:3-alpine')
-    .withExposedPorts(5672)
-    .start();
+  [pgContainer, redisContainer, wiremockContainer, rabbitmqContainer] = await Promise.all([
+    new PostgreSqlContainer('postgres:17-alpine').start(),
+    new RedisContainer('redis:7-alpine').start(),
+    new GenericContainer('wiremock/wiremock:latest').withExposedPorts(8080).start(),
+    new GenericContainer('rabbitmq:3-alpine').withExposedPorts(5672).start(),
+  ]);
 
   const databaseUrl = pgContainer.getConnectionUri();
   const redisUrl = redisContainer.getConnectionUrl();
@@ -98,8 +97,10 @@ export default async function globalSetup() {
     detached: true,
   });
 
-  await waitForServer('http://127.0.0.1:3100/health');
-  await waitForServer('http://127.0.0.1:3099/metrics');
+  await Promise.all([
+    waitForServer('http://127.0.0.1:3100/health'),
+    waitForServer('http://127.0.0.1:3099/metrics'),
+  ]);
 }
 
 export async function globalTeardown() {
@@ -108,7 +109,7 @@ export async function globalTeardown() {
       process.kill(-appProcess.pid, 'SIGKILL');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
-        console.error('failed to kill app process');
+        logger.error({ err }, 'failed to kill app process');
       }
     }
   }
@@ -117,12 +118,14 @@ export async function globalTeardown() {
       process.kill(-notificationProcess.pid, 'SIGKILL');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
-        console.error('failed to kill notification process');
+        logger.error({ err }, 'failed to kill notification process');
       }
     }
   }
-  if (rabbitmqContainer) await rabbitmqContainer.stop();
-  if (wiremockContainer) await wiremockContainer.stop();
-  if (redisContainer) await redisContainer.stop();
-  if (pgContainer) await pgContainer.stop();
+  await Promise.all([
+    rabbitmqContainer?.stop(),
+    wiremockContainer?.stop(),
+    redisContainer?.stop(),
+    pgContainer?.stop(),
+  ]);
 }
