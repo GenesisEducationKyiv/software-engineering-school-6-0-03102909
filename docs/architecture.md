@@ -187,3 +187,25 @@ sequenceDiagram
     Notification->>Resend: send release email
     Resend-->>User: Email delivered
 ```
+
+### 3.3 Unsubscribe Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API
+    participant DB as PostgreSQL
+
+    Note over User: Clicks unsubscribe link from release email
+
+    User->>API: GET /api/unsubscribe/{token}
+
+    API->>DB: remove subscription by token
+
+    alt Success
+        DB-->>API: subscription removed
+        API-->>User: 200 OK
+    else Token not found
+        API-->>User: 404 Not Found
+    end
+```
