@@ -2,7 +2,7 @@
 
 ## 1. High-Level Overview
 
-The system allows users to subscribe to email notifications about new releases of a chosen GitHub repository. It is built as a monorepo with two microservices that communicate asynchronously via **RabbitMQ** and synchronously via **gRPC**. 
+The system allows users to subscribe to email notifications about new releases of a chosen GitHub repository. It is built as a monorepo with two microservices that communicate asynchronously via **RabbitMQ** and synchronously via **gRPC**.
 
 - **API Service** — handles user-facing HTTP requests, manages subscriptions, and runs a cron-based scanner that detects new GitHub releases
 - **Notification Service** — sends emails (confirmation and release notifications), verifies email addresses, and reports delivery results back via a saga pattern
@@ -64,7 +64,7 @@ flowchart TD
 
 ## 2. Layered Architecture
 
-Both services follow a **layered architecture** with dependency inversion — business logic depends on interfaces, not concrete implementations. 
+Both services follow a **layered architecture** with dependency inversion — business logic depends on interfaces, not concrete implementations.
 
 ```mermaid
 flowchart TD
@@ -91,121 +91,13 @@ flowchart TD
 
     Routes --> BL
     GrpcH --> BL
-    
+
     BL --> Repo
     Saga --> Repo
-    
+
     BL --> APIAdapters
     BL --> RPC
     BL --> Messaging
-    
+
     Repo --> Storage
-```
-
-
----
-
-## 3. Key Flows
-
-### 3.1 Subscription Flow 
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant API
-    participant Notification
-    participant GitHub
-    participant RabbitMQ
-    participant Resend
-    participant DB as PostgreSQL
-
-    User->>API: POST /api/subscribe
-    API->>Notification: gRPC verifyEmail
-    Notification-->>API: valid
-
-    API->>GitHub: validate repo via GitHub API
-    GitHub-->>API: valid repository
-    API->>DB: createOrGet subscription
-    DB-->>API: subscription + confirmToken
-
-    API->>RabbitMQ: publish confirmation-email
-    API-->>User: 202 Accepted
-
-    RabbitMQ->>Notification: deliver message
-    Notification->>Resend: send confirmation email
-    alt Success
-        Resend-->>Notification: 200 OK
-        Notification->>RabbitMQ: saga-reply SUCCESS
-        RabbitMQ->>API: deliver saga reply
-        Note over API: Subscription stays pending until user clicks confirm link
-    else Failure
-        Resend-->>Notification: Error
-        Notification->>RabbitMQ: saga-reply FAILURE
-        RabbitMQ->>API: deliver saga reply
-        API->>DB: delete pending subscription
-    end
-
-    User->>API: GET /api/confirm/token
-    API->>DB: confirm subscription
-    API-->>User: 200 OK
-```
-
-### 3.2 Release Scan & Notification Flow
-
-```mermaid
-sequenceDiagram
-    participant Cron
-    participant Scanner
-    participant GitHub
-    participant DB as PostgreSQL
-    participant RabbitMQ
-    participant Notification
-    participant Resend
-    actor User
-
-    Cron->>Scanner: scanAllRepositories
-    Scanner->>DB: findAllWithConfirmedSubscriptions
-    DB-->>Scanner: repositories
-
-    loop For each repository
-        Scanner->>GitHub: getLatestRelease
-        GitHub-->>Scanner: latestTag
-
-        alt New release detected
-            Scanner->>DB: findConfirmedSubscribersByRepo
-            DB-->>Scanner: subscribers
-
-            loop For each subscriber
-                Scanner->>RabbitMQ: publish release-notification
-            end
-
-            Scanner->>DB: updateLastSeenTag
-        end
-    end
-
-    RabbitMQ->>Notification: deliver message
-    Notification->>Resend: send release email
-    Resend-->>User: Email delivered
-```
-
-### 3.3 Unsubscribe Flow
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant API
-    participant DB as PostgreSQL
-
-    Note over User: Clicks unsubscribe link from release email
-
-    User->>API: GET /api/unsubscribe/{token}
-
-    API->>DB: remove subscription by token
-
-    alt Success
-        DB-->>API: subscription removed
-        API-->>User: 200 OK
-    else Token not found
-        API-->>User: 404 Not Found
-    end
 ```

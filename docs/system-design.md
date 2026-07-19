@@ -134,3 +134,108 @@ erDiagram
 - Пара `Subscription.subscriberId + Subscription.repositoryId` є унікальною, щоб користувач не міг мати дубльовану підписку на той самий репозиторій.
 - `confirmToken` та `unsubscribeToken` є унікальними, оскільки використовуються для підтвердження підписки та відписки.
 - При видаленні підписника або репозиторію пов’язані підписки видаляються каскадно.
+
+## 4. Key Flows
+
+### 4.1 Subscription Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API
+    participant Notification
+    participant GitHub
+    participant RabbitMQ
+    participant Resend
+    participant DB as PostgreSQL
+
+    User->>API: POST /api/subscribe
+    API->>Notification: gRPC verifyEmail
+    Notification-->>API: valid
+
+    API->>GitHub: validate repo via GitHub API
+    GitHub-->>API: valid repository
+    API->>DB: createOrGet subscription
+    DB-->>API: subscription + confirmToken
+
+    API->>RabbitMQ: publish confirmation-email
+    API-->>User: 202 Accepted
+
+    RabbitMQ->>Notification: deliver message
+    Notification->>Resend: send confirmation email
+    alt Success
+        Resend-->>Notification: 200 OK
+        Notification->>RabbitMQ: saga-reply SUCCESS
+        RabbitMQ->>API: deliver saga reply
+        Note over API: Subscription stays pending until user clicks confirm link
+    else Failure
+        Resend-->>Notification: Error
+        Notification->>RabbitMQ: saga-reply FAILURE
+        RabbitMQ->>API: deliver saga reply
+        API->>DB: delete pending subscription
+    end
+
+    User->>API: GET /api/confirm/token
+    API->>DB: confirm subscription
+    API-->>User: 200 OK
+```
+
+### 4.2 Release Scan & Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant Cron
+    participant Scanner
+    participant GitHub
+    participant DB as PostgreSQL
+    participant RabbitMQ
+    participant Notification
+    participant Resend
+    actor User
+
+    Cron->>Scanner: scanAllRepositories
+    Scanner->>DB: findAllWithConfirmedSubscriptions
+    DB-->>Scanner: repositories
+
+    loop For each repository
+        Scanner->>GitHub: getLatestRelease
+        GitHub-->>Scanner: latestTag
+
+        alt New release detected
+            Scanner->>DB: findConfirmedSubscribersByRepo
+            DB-->>Scanner: subscribers
+
+            loop For each subscriber
+                Scanner->>RabbitMQ: publish release-notification
+            end
+
+            Scanner->>DB: updateLastSeenTag
+        end
+    end
+
+    RabbitMQ->>Notification: deliver message
+    Notification->>Resend: send release email
+    Resend-->>User: Email delivered
+```
+
+### 4.3 Unsubscribe Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API
+    participant DB as PostgreSQL
+
+    Note over User: Clicks unsubscribe link from release email
+
+    User->>API: GET /api/unsubscribe/{token}
+
+    API->>DB: remove subscription by token
+
+    alt Success
+        DB-->>API: subscription removed
+        API-->>User: 200 OK
+    else Token not found
+        API-->>User: 404 Not Found
+    end
+```
