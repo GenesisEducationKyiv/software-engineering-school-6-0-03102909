@@ -4,9 +4,29 @@
 
 The system allows users to subscribe to email notifications about new releases of a chosen GitHub repository. It is built as a monorepo with two microservices that communicate asynchronously via **RabbitMQ** and synchronously via **gRPC**.
 
-- **API Service** — handles user-facing HTTP requests, manages subscriptions, and runs a cron-based scanner that detects new GitHub releases
-- **Notification Service** — sends emails (confirmation and release notifications), verifies email addresses, and reports delivery results back via a saga pattern
-- **Shared Package** — contains DTOs (Zod schemas), RabbitMQ connection logic, retry utilities, protobuf-generated gRPC stubs, and shared types used by both services
+### API Service
+
+- HTTP API: subscribe, confirm, unsubscribe, list subscriptions
+- Email verification via gRPC call to Notification Service
+- Repository validation via GitHub API
+- Cron-based release scanner — polls GitHub for new tags
+- Publishes email tasks to RabbitMQ (confirmation + release notification)
+- Handles saga replies — compensates on email delivery failure (deletes pending subscription)
+
+### Notification Service
+
+- gRPC server for email verification
+- Consumes RabbitMQ queues: `confirmation-email`, `release-notification`
+- Sends emails via Resend API
+- Publishes saga replies back to RabbitMQ
+- Retry on delivery failures
+
+### Shared Package
+
+- DTOs with Zod schemas for queue message validation
+- RabbitMQ connection and queue configuration
+- Protobuf-generated gRPC stubs
+- Retry utilities and shared types
 
 ### Infrastructure
 
