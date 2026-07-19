@@ -8,10 +8,10 @@ The system allows users to subscribe to email notifications about new releases o
 - **Notification Service** — sends emails (confirmation and release notifications), verifies email addresses, and reports delivery results back via a saga pattern
 - **Shared Package** — contains DTOs (Zod schemas), RabbitMQ connection logic, retry utilities, protobuf-generated gRPC stubs, and shared types used by both services
 
+### Infrastructure
+
 ```mermaid
 flowchart TD
-    User([User])
-
     subgraph Application["Application Services"]
         API["API Service"]
         Notification["Notification Service"]
@@ -39,25 +39,43 @@ flowchart TD
         Filebeat["Filebeat"]
     end
 
-    User -->|HTTPS| API
-
-    API --> Postgres
-    API -->|Caching| Redis
+    API <--> Postgres
+    API <--> Redis
     API -->|gRPC| Notification
-    API --> GitHub
+    API <-->|REST| GitHub
+    API <-->|AMQP| RabbitMQ
+    Notification <-->|AMQP| RabbitMQ
+    Notification -->|REST| Resend
 
-    API -->|Publish email tasks| RabbitMQ
-    RabbitMQ -->|Deliver email tasks| Notification
-    Notification -->|Publish saga reply| RabbitMQ
-    RabbitMQ -->|Deliver saga reply| API
-    Notification -->|Send emails| Resend
+    API -->|metrics| Prometheus
+    Prometheus -->|metrics| Grafana
+    API -->|logs| Filebeat
+    Notification -->|logs| Filebeat
+    Filebeat -->|logs| Elasticsearch
+    Elasticsearch -->|logs| Kibana
+```
 
-    API -->|Scraped by| Prometheus
-    Prometheus -->|Queried by| Grafana
-    API -->|Logs read by| Filebeat
-    Notification -->|Logs read by| Filebeat
-    Filebeat -->|Pushes logs to| Elasticsearch
-    Elasticsearch -->|Queried by| Kibana
+### User Flow
+
+```mermaid
+flowchart LR
+    User([User])
+    API["API Service"]
+    Notification["Notification Service"]
+    GitHub["GitHub API"]
+    RabbitMQ["RabbitMQ"]
+    Resend["Resend Email API"]
+    DB[(PostgreSQL)]
+
+    User -->|Subscribe / Confirm / Unsubscribe| API
+    API -->|Validate repository| GitHub
+    API -->|Verify email| Notification
+    API -->|Store subscription| DB
+
+    API -->|Queue email task| RabbitMQ
+    RabbitMQ -->|Deliver task| Notification
+    Notification -->|Send email| Resend
+    Resend -->|Deliver email| User
 ```
 
 ---
