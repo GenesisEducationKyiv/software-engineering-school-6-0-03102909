@@ -26,83 +26,49 @@ const shouldNotCrossDepend = async (from: string, to: string) => {
 };
 
 describe('architecture boundaries', () => {
+  const SERVICES = ['api', 'notification'] as const;
+  const SHARED = 'shared';
+
   describe('api layer independence', () => {
-    it('services should not depend on repositories', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'services', 'repositories');
-      expect(violations).toEqual([]);
-    });
+    const forbidden: [string, string][] = [
+      ['services', 'repositories'],
+      ['services', 'db'],
+      ['services', 'api'],
+      ['repositories', 'api'],
+      ['repositories', 'services'],
+      ['api', 'repositories'],
+      ['api', 'db'],
+    ];
 
-    it('services should not depend on db', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'services', 'db');
-      expect(violations).toEqual([]);
-    });
-
-    it('services should not depend on presentation (api)', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'services', 'api');
-      expect(violations).toEqual([]);
-    });
-
-    it('infrastructure (repositories) should not depend on presentation', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'repositories', 'api');
-      expect(violations).toEqual([]);
-    });
-
-    it('repositories should not depend on services', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'repositories', 'services');
-      expect(violations).toEqual([]);
-    });
-
-    it('presentation (api) should not bypass services to reach repositories', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'api', 'repositories');
-      expect(violations).toEqual([]);
-    });
-
-    it('presentation (api) should not depend on db', async () => {
-      const violations = await shouldNotDepend(apiTsConfig, 'api', 'db');
+    it.each(forbidden)('%s should not depend on %s', async (from, to) => {
+      const violations = await shouldNotDepend(apiTsConfig, from, to);
       expect(violations).toEqual([]);
     });
   });
 
   describe('notification layer independence', () => {
-    it('services should not depend on grpc', async () => {
-      const violations = await shouldNotDepend(notificationTsConfig, 'services', 'grpc');
-      expect(violations).toEqual([]);
-    });
+    const forbidden: [string, string][] = [
+      ['services', 'grpc'],
+      ['services', 'messaging'],
+      ['services', 'handlers'],
+      ['services', 'api'],
+    ];
 
-    it('services should not depend on messaging', async () => {
-      const violations = await shouldNotDepend(notificationTsConfig, 'services', 'messaging');
-      expect(violations).toEqual([]);
-    });
-
-    it('services should not depend on handlers', async () => {
-      const violations = await shouldNotDepend(notificationTsConfig, 'services', 'handlers');
-      expect(violations).toEqual([]);
-    });
-
-    it('services should not depend on presentation (api)', async () => {
-      const violations = await shouldNotDepend(notificationTsConfig, 'services', 'api');
+    it.each(forbidden)('%s should not depend on %s', async (from, to) => {
+      const violations = await shouldNotDepend(notificationTsConfig, from, to);
       expect(violations).toEqual([]);
     });
   });
 
   describe('cross-package isolation', () => {
-    it('api package should not depend on notification package', async () => {
-      const violations = await shouldNotCrossDepend('api', 'notification');
+    it.each(SERVICES)('%s should not depend on the other service', async (service) => {
+      const other = SERVICES.find((s) => s !== service)!;
+      const violations = await shouldNotCrossDepend(service, other);
       expect(violations).toEqual([]);
     });
 
-    it('notification package should not depend on api package', async () => {
-      const violations = await shouldNotCrossDepend('notification', 'api');
-      expect(violations).toEqual([]);
-    });
-
-    it('shared package should not depend on api package', async () => {
-      const violations = await shouldNotCrossDepend('shared', 'api');
-      expect(violations).toEqual([]);
-    });
-
-    it('shared package should not depend on notification package', async () => {
-      const violations = await shouldNotCrossDepend('shared', 'notification');
+    it.each(SERVICES)('shared package should not depend on %s', async (target) => {
+      const violations = await shouldNotCrossDepend(SHARED, target);
       expect(violations).toEqual([]);
     });
   });
