@@ -2,14 +2,17 @@
 
 **Live Demo:** [https://githubnotifier.tech](https://githubnotifier.tech)
 
-An API service that allows users to subscribe to email notifications about new releases of their chosen GitHub repositories. Built as a Node.js monolith with a Dockerized infrastructure.
+An API service that allows users to subscribe to email notifications about new releases of their chosen GitHub repositories. Built with Node.js microservices and Dockerized infrastructure.
 
 ## Tech Stack
 
 - Framework: Express.js (Node.js) & TypeScript
+- Architecture: Microservices (API Service & Notification Service)
 - Database: PostgreSQL with Prisma ORM
 - Caching: Redis
-- Queue/Scheduler: pg-boss
+- Message Broker: RabbitMQ
+- Inter-service RPC: gRPC
+- Scheduler: Croner
 - Email Provider: Resend
 - Validation: Zod
 - Testing: Vitest, Playwright, Testcontainers
@@ -27,7 +30,7 @@ cp .env.example .env
 
 ### 2. Run Environment (Docker)
 
-The application, database, and redis cache are managed via Docker Compose.
+The applications, database, message broker, and redis cache are managed via Docker Compose.
 
 ```bash
 docker compose up -d
@@ -69,9 +72,9 @@ This section outlines the core logic and technical considerations implemented ac
 
 ### Process Flow
 
-1. **Subscription:** Upon a valid request, the application verifies the repository's existence via the GitHub API and creates an unconfirmed subscription.
-2. **Background Scanner:** A `pg-boss` scheduled job periodically queries GitHub for the latest release information of all confirmed subscriptions. If external GitHub API rate limits (`429`) are exceeded, the scanner catches the error and cleanly aborts the current sequence to prevent provider bans, gracefully resuming on the next scheduled cron cycle. Redis caching further minimizes unnecessary external calls.
-3. **Notification:** If a novel release tag is detected (differing from the stored `last_seen_tag`), an email notification job is enqueued to Resend, and the repository's `last_seen_tag` is updated.
+1. **Subscription:** Upon a valid request, the API service validates email disposable status via gRPC call to Notification Service, verifies repository existence via GitHub API, creates an unconfirmed subscription, and publishes a confirmation email job to RabbitMQ.
+2. **Background Scanner:** A scheduled task periodically queries GitHub for the latest release information of all confirmed subscriptions. If external GitHub API rate limits (`429`) are exceeded, the scanner catches the error and cleanly aborts the current sequence to prevent provider bans, gracefully resuming on the next scheduled cron cycle. Redis caching further minimizes unnecessary external calls.
+3. **Notification:** If a novel release tag is detected (differing from the stored `last_seen_tag`), a release notification message is published to RabbitMQ. The Notification Service consumes the event and sends emails via Resend API.
 
 ### API Endpoints
 
