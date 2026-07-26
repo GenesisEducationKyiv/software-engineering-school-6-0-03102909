@@ -1,0 +1,13 @@
+node_modules
+
+.env
+.env.test
+
+dist/
+
+*.tsbuildinfo
+/src/generated/prisma
+
+coverage/
+test-results/
+.agents/

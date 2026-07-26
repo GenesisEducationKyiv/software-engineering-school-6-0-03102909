@@ -1,0 +1,29 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    processors:
+      - add_docker_metadata:
+          host: 'unix:///var/run/docker.sock'
+      - drop_event:
+          when:
+            not:
+              contains:
+                container.name: 'app'
+      - decode_json_fields:
+          fields: ['message']
+          target: 'app_log'
+          overwrite_keys: true
+          add_error_key: true
+
+setup.kibana:
+  host: 'kibana:5601'
+
+output.elasticsearch:
+  hosts: ['elasticsearch:9200']
+  indices:
+    - index: 'filebeat-%{[agent.version]}-%{+yyyy.MM.dd}'
+
+setup.ilm.enabled: false
+setup.template.name: 'filebeat'
+setup.template.pattern: 'filebeat-*'

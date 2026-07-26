@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package emailverification.v1;
+
+service EmailVerificationService {
+  rpc VerifyEmail (VerifyEmailRequest) returns (VerifyEmailResponse);
+}
+
+message VerifyEmailRequest {
+  string email = 1;
+}
+
+message VerifyEmailResponse {
+  bool valid = 1;
+  optional string reason = 2;
+  EmailChecks checks = 3;
+}
+
+message EmailChecks {
+  bool format = 1;
+  bool mx = 2;
+  bool disposable = 3;
+}

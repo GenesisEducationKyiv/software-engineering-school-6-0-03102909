@@ -1,0 +1,131 @@
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
+import { GenericContainer, type StartedTestContainer } from 'testcontainers';
+import { execSync, type ChildProcess, spawn } from 'child_process';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { logger } from '../../src/di/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+let pgContainer: StartedPostgreSqlContainer;
+let redisContainer: StartedRedisContainer;
+let wiremockContainer: StartedTestContainer;
+let rabbitmqContainer: StartedTestContainer;
+let appProcess: ChildProcess;
+let notificationProcess: ChildProcess;
+
+async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const res = await fetch(url).catch(() => null);
+    if (res?.ok) return;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Server at ${url} did not start within ${timeoutMs}ms`);
+}
+
+export default async function globalSetup() {
+  [pgContainer, redisContainer, wiremockContainer, rabbitmqContainer] = await Promise.all([
+    new PostgreSqlContainer('postgres:17-alpine').start(),
+    new RedisContainer('redis:7-alpine').start(),
+    new GenericContainer('wiremock/wiremock:latest').withExposedPorts(8080).start(),
+    new GenericContainer('rabbitmq:3-alpine').withExposedPorts(5672).start(),
+  ]);
+
+  const databaseUrl = pgContainer.getConnectionUri();
+  const redisUrl = redisContainer.getConnectionUrl();
+  const wmHost = wiremockContainer.getHost() === 'localhost' ? '127.0.0.1' : wiremockContainer.getHost();
+  const rmqHost = rabbitmqContainer.getHost() === 'localhost' ? '127.0.0.1' : rabbitmqContainer.getHost();
+
+  const wiremockUrl = `http://${wmHost}:${wiremockContainer.getMappedPort(8080)}`;
+  const rabbitmqUrl = `amqp://${rmqHost}:${rabbitmqContainer.getMappedPort(5672)}`;
+
+  await fetch(`${wiremockUrl}/__admin/mappings/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mappings: [
+        {
+          request: { method: 'GET', url: '/repos/facebook/react' },
+          response: { status: 200, jsonBody: { owner: { login: 'facebook' }, name: 'react' } },
+        },
+        {
+          request: { method: 'GET', url: '/repos/facebook/react/releases/latest' },
+          response: { status: 200, jsonBody: { tag_name: 'v1.0.0' } },
+        },
+      ],
+    }),
+  });
+
+  const apiDir = join(__dirname, '../../');
+
+  execSync('npx prisma migrate deploy', {
+    env: { ...process.env, DATABASE_URL: databaseUrl },
+    cwd: apiDir,
+  });
+
+  appProcess = spawn('npx', ['tsx', join(apiDir, 'src/index.ts')], {
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+      REDIS_URL: redisUrl,
+      RABBITMQ_URL: rabbitmqUrl,
+      GITHUB_API_URL: wiremockUrl,
+      NOTIFICATION_SERVICE_URL: 'http://127.0.0.1:3100',
+      PORT: '3099',
+      API_KEY: 'test-api-key',
+      RESEND_API_KEY: 're_test_dummy_key',
+    },
+    cwd: apiDir,
+    stdio: 'pipe',
+    detached: true,
+  });
+
+  const notificationDir = join(dirname(apiDir), 'notification');
+  notificationProcess = spawn('npx', ['tsx', join(notificationDir, 'src/index.ts')], {
+    env: {
+      ...process.env,
+      RABBITMQ_URL: rabbitmqUrl,
+      NOTIFICATION_PORT: '3100',
+      RESEND_API_KEY: 're_test_dummy_key',
+      NODE_ENV: 'test',
+    },
+    cwd: notificationDir,
+    stdio: 'pipe',
+    detached: true,
+  });
+
+  await Promise.all([
+    waitForServer('http://127.0.0.1:3100/health'),
+    waitForServer('http://127.0.0.1:3099/metrics'),
+  ]);
+}
+
+export async function globalTeardown() {
+  if (appProcess?.pid) {
+    try {
+      process.kill(-appProcess.pid, 'SIGKILL');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+        logger.error({ err }, 'failed to kill app process');
+      }
+    }
+  }
+  if (notificationProcess?.pid) {
+    try {
+      process.kill(-notificationProcess.pid, 'SIGKILL');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+        logger.error({ err }, 'failed to kill notification process');
+      }
+    }
+  }
+  await Promise.all([
+    rabbitmqContainer?.stop(),
+    wiremockContainer?.stop(),
+    redisContainer?.stop(),
+    pgContainer?.stop(),
+  ]);
+}
