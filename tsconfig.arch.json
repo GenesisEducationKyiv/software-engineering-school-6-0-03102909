@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@github-release-notification/api": ["packages/api/src/index"],
+      "@github-release-notification/api/*": ["packages/api/src/*"],
+      "@github-release-notification/notification": ["packages/notification/src/index"],
+      "@github-release-notification/notification/*": ["packages/notification/src/*"],
+      "@github-release-notification/shared": ["packages/shared/src/index"],
+      "@github-release-notification/shared/*": ["packages/shared/src/*"],
+    },
+  },
+  "include": [
+    "packages/api/src/**/*",
+    "packages/notification/src/**/*",
+    "packages/shared/src/**/*",
+  ],
+  "exclude": ["**/__tests__/**", "**/generated/**"],
+}

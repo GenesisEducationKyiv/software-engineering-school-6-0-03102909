@@ -26,12 +26,13 @@
 
 ```mermaid
 flowchart TD
-    User([Користувач])
+    User([User])
 
     subgraph Docker["Docker Compose"]
         API[API Service]
         Scanner[Scanner Service]
-        Mailer[Mailer Worker]
+        Notification["Notification Service (Microservice)"]
+        RabbitMQ[(RabbitMQ)]
         Redis[(Redis)]
         DB[(PostgreSQL)]
     end
@@ -39,18 +40,20 @@ flowchart TD
     GitHub[GitHub API]
     Resend[Resend API]
 
-    User -- "Підписується" --> API
-    API -- "Зберігає підписку" --> DB
-    API -. "Рейт-ліміти" .-> Redis
+    User -- "HTTP requests" --> API
+    API -- "Store & query data" --> DB
+    API -. "Check rate limits" .-> Redis
+    API -- "gRPC: verifyEmail" --> Notification
 
-    DB -- "Повертає підписки" --> Scanner
-    Scanner -. "Кешує запити" .-> Redis
-    GitHub -- "Повертає дані релізів" --> Scanner
-    Scanner -- "Чергує email-задачі" --> DB
+    DB -- "Fetch subscriptions" --> Scanner
+    Scanner -. "Cache release tags" .-> Redis
+    GitHub -- "Fetch latest releases" --> Scanner
 
-    DB -- "Віддає задачі" --> Mailer
-    Mailer -- "Відправляє листи" --> Resend
-    Resend -- "Доставляє email" --> User
+    API -- "Publish email jobs" --> RabbitMQ
+    Scanner -- "Publish release jobs" --> RabbitMQ
+    RabbitMQ -- "Deliver email jobs" --> Notification
+    Notification -- "Send email" --> Resend
+    Resend -- "Deliver email" --> User
 ```
 
 ## 3. Детальний дизайн компонентів
@@ -61,9 +64,12 @@ flowchart TD
 
 **Основні функції сервісу:**
 
-- Обробка запитів на підписку
-- Генерація токенів для підтвердження email та відписки
-- Запис даних користувачів у БД (Prisma ORM)
+- Обробка запитів на підписку, підтвердження та відписку
+- Перевірка email через Notification Service (gRPC `verifyEmail`)
+- Валідація репозиторію через GitHub API
+- Генерація токенів підтвердження email та відписки
+- Запис даних у БД (Prisma ORM)
+- Публікація подій у RabbitMQ та обробка Saga-відповідей
 
 **Ключові Endpoints:**
 
@@ -77,26 +83,26 @@ flowchart TD
 
 **Основні функції сервісу:**
 
-- Використовує вбудований cron у `pg-boss`
-- Проходиться по всіх унікальних репозиторіях у базі
+- Використовує періодичне планування (`croner`)
+- Проходиться по всіх унікальних репозиторіях з підтвердженими підписками у базі
 - Для кожного робить HTTP запит до `https://api.github.com/repos/{owner}/{repo}/releases/latest`
 - Порівнює отриманий тег із збереженим `last_seen_tag`
 - Якщо є новий реліз:
-  1. Оновлює `last_seen_tag` у базі
-  2. Знаходить всіх підтверджених користувачів для цього репозиторію
-  3. Кладе задачі на відправку (job `release-email`) у чергу `pg-boss`
+  1. Знаходить всіх підтверджених користувачів для цього репозиторію
+  2. Публікує повідомлення `release-notification` у RabbitMQ
+  3. Оновлює `last_seen_tag` у базі
 
-### 3.3 Mailer Worker
+### 3.3 Notification Service
 
-**Відповідальність:** обробляє email-задачі з черги та відправляє листи користувачам.
+**Відповідальність:** виконує перевірку email через gRPC, обробляє email-повідомлення з RabbitMQ та відправляє листи користувачам.
 
 **Основні функції сервісу:**
 
-- Слухає чергу `pg-boss`
-- Бере з черги задачі типів `confirmation-email` та `release-email`
+- Надає gRPC endpoint `verifyEmail` для перевірки одноразових email-доменів та синтаксису
+- Слухає RabbitMQ черги для подій `confirmation-email` та `release-notification`
 - Формує HTML-тіло листа
 - Викликає Resend API для фактичної відправки листа користувачу
-- У разі збою відправки (наприклад, Resend недоступний), `pg-boss` автоматично зробить retry через певний час (retryLimit: 3)
+- Відправляє `saga-reply` у RabbitMQ для координації статусу підписки з API Service
 
 ### 3.4 Database (PostgreSQL + Prisma)
 
@@ -134,3 +140,108 @@ erDiagram
 - Пара `Subscription.subscriberId + Subscription.repositoryId` є унікальною, щоб користувач не міг мати дубльовану підписку на той самий репозиторій.
 - `confirmToken` та `unsubscribeToken` є унікальними, оскільки використовуються для підтвердження підписки та відписки.
 - При видаленні підписника або репозиторію пов’язані підписки видаляються каскадно.
+
+## 4. Key Flows
+
+### 4.1 Subscription Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API
+    participant Notification
+    participant GitHub
+    participant RabbitMQ
+    participant Resend
+    participant DB as PostgreSQL
+
+    User->>API: POST /api/subscribe
+    API->>Notification: gRPC verifyEmail
+    Notification-->>API: valid
+
+    API->>GitHub: validate repo via GitHub API
+    GitHub-->>API: valid repository
+    API->>DB: createOrGet subscription
+    DB-->>API: subscription + confirmToken
+
+    API->>RabbitMQ: publish confirmation-email
+    API-->>User: 202 Accepted
+
+    RabbitMQ->>Notification: deliver message
+    Notification->>Resend: send confirmation email
+    alt Success
+        Resend-->>Notification: 200 OK
+        Notification->>RabbitMQ: saga-reply SUCCESS
+        RabbitMQ->>API: deliver saga reply
+        Note over API: Subscription stays pending until user clicks confirm link
+    else Failure
+        Resend-->>Notification: Error
+        Notification->>RabbitMQ: saga-reply FAILURE
+        RabbitMQ->>API: deliver saga reply
+        API->>DB: delete pending subscription
+    end
+
+    User->>API: GET /api/confirm/token
+    API->>DB: confirm subscription
+    API-->>User: 200 OK
+```
+
+### 4.2 Release Scan & Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant Cron
+    participant Scanner
+    participant GitHub
+    participant DB as PostgreSQL
+    participant RabbitMQ
+    participant Notification
+    participant Resend
+    actor User
+
+    Cron->>Scanner: scanAllRepositories
+    Scanner->>DB: findAllWithConfirmedSubscriptions
+    DB-->>Scanner: repositories
+
+    loop For each repository
+        Scanner->>GitHub: getLatestRelease
+        GitHub-->>Scanner: latestTag
+
+        alt New release detected
+            Scanner->>DB: findConfirmedSubscribersByRepo
+            DB-->>Scanner: subscribers
+
+            loop For each subscriber
+                Scanner->>RabbitMQ: publish release-notification
+            end
+
+            Scanner->>DB: updateLastSeenTag
+        end
+    end
+
+    RabbitMQ->>Notification: deliver message
+    Notification->>Resend: send release email
+    Resend-->>User: Email delivered
+```
+
+### 4.3 Unsubscribe Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API
+    participant DB as PostgreSQL
+
+    Note over User: Clicks unsubscribe link from release email
+
+    User->>API: GET /api/unsubscribe/{token}
+
+    API->>DB: remove subscription by token
+
+    alt Success
+        DB-->>API: subscription removed
+        API-->>User: 200 OK
+    else Token not found
+        API-->>User: 404 Not Found
+    end
+```
