@@ -26,12 +26,13 @@
 
 ```mermaid
 flowchart TD
-    User([Користувач])
+    User([User])
 
     subgraph Docker["Docker Compose"]
         API[API Service]
         Scanner[Scanner Service]
-        Mailer[Mailer Worker]
+        Notification["Notification Service (Microservice)"]
+        RabbitMQ[(RabbitMQ)]
         Redis[(Redis)]
         DB[(PostgreSQL)]
     end
@@ -39,18 +40,20 @@ flowchart TD
     GitHub[GitHub API]
     Resend[Resend API]
 
-    User -- "Підписується" --> API
-    API -- "Зберігає підписку" --> DB
-    API -. "Рейт-ліміти" .-> Redis
+    User -- "HTTP requests" --> API
+    API -- "Store & query data" --> DB
+    API -. "Check rate limits" .-> Redis
+    API -- "gRPC: verifyEmail" --> Notification
 
-    DB -- "Повертає підписки" --> Scanner
-    Scanner -. "Кешує запити" .-> Redis
-    GitHub -- "Повертає дані релізів" --> Scanner
-    Scanner -- "Чергує email-задачі" --> DB
+    DB -- "Fetch subscriptions" --> Scanner
+    Scanner -. "Cache release tags" .-> Redis
+    GitHub -- "Fetch latest releases" --> Scanner
 
-    DB -- "Віддає задачі" --> Mailer
-    Mailer -- "Відправляє листи" --> Resend
-    Resend -- "Доставляє email" --> User
+    API -- "Publish email jobs" --> RabbitMQ
+    Scanner -- "Publish release jobs" --> RabbitMQ
+    RabbitMQ -- "Deliver email jobs" --> Notification
+    Notification -- "Send email" --> Resend
+    Resend -- "Deliver email" --> User
 ```
 
 ## 3. Детальний дизайн компонентів
@@ -61,9 +64,12 @@ flowchart TD
 
 **Основні функції сервісу:**
 
-- Обробка запитів на підписку
-- Генерація токенів для підтвердження email та відписки
-- Запис даних користувачів у БД (Prisma ORM)
+- Обробка запитів на підписку, підтвердження та відписку
+- Перевірка email через Notification Service (gRPC `verifyEmail`)
+- Валідація репозиторію через GitHub API
+- Генерація токенів підтвердження email та відписки
+- Запис даних у БД (Prisma ORM)
+- Публікація подій у RabbitMQ та обробка Saga-відповідей
 
 **Ключові Endpoints:**
 
@@ -77,26 +83,26 @@ flowchart TD
 
 **Основні функції сервісу:**
 
-- Використовує вбудований cron у `pg-boss`
-- Проходиться по всіх унікальних репозиторіях у базі
+- Використовує періодичне планування (`croner`)
+- Проходиться по всіх унікальних репозиторіях з підтвердженими підписками у базі
 - Для кожного робить HTTP запит до `https://api.github.com/repos/{owner}/{repo}/releases/latest`
 - Порівнює отриманий тег із збереженим `last_seen_tag`
 - Якщо є новий реліз:
-  1. Оновлює `last_seen_tag` у базі
-  2. Знаходить всіх підтверджених користувачів для цього репозиторію
-  3. Кладе задачі на відправку (job `release-email`) у чергу `pg-boss`
+  1. Знаходить всіх підтверджених користувачів для цього репозиторію
+  2. Публікує повідомлення `release-notification` у RabbitMQ
+  3. Оновлює `last_seen_tag` у базі
 
-### 3.3 Mailer Worker
+### 3.3 Notification Service
 
-**Відповідальність:** обробляє email-задачі з черги та відправляє листи користувачам.
+**Відповідальність:** виконує перевірку email через gRPC, обробляє email-повідомлення з RabbitMQ та відправляє листи користувачам.
 
 **Основні функції сервісу:**
 
-- Слухає чергу `pg-boss`
-- Бере з черги задачі типів `confirmation-email` та `release-email`
+- Надає gRPC endpoint `verifyEmail` для перевірки одноразових email-доменів та синтаксису
+- Слухає RabbitMQ черги для подій `confirmation-email` та `release-notification`
 - Формує HTML-тіло листа
 - Викликає Resend API для фактичної відправки листа користувачу
-- У разі збою відправки (наприклад, Resend недоступний), `pg-boss` автоматично зробить retry через певний час (retryLimit: 3)
+- Відправляє `saga-reply` у RabbitMQ для координації статусу підписки з API Service
 
 ### 3.4 Database (PostgreSQL + Prisma)
 
